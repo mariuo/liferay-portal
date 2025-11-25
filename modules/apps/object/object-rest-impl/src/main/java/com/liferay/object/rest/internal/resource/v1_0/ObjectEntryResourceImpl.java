@@ -10,6 +10,7 @@ import com.liferay.object.constants.ObjectFieldConstants;
 import com.liferay.object.exception.ObjectEntryValidationException;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectField;
+import com.liferay.object.model.ObjectRelationship;
 import com.liferay.object.model.ObjectRelationshipModel;
 import com.liferay.object.rest.dto.v1_0.ObjectEntry;
 import com.liferay.object.rest.dto.v1_0.ValidationError;
@@ -48,17 +49,18 @@ import com.liferay.portal.vulcan.dto.converter.DTOConverterRegistry;
 import com.liferay.portal.vulcan.dto.converter.DefaultDTOConverterContext;
 import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
-
 import jakarta.ws.rs.NotSupportedException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 
 import java.io.Serializable;
-
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author Javier Gamarra
@@ -407,9 +409,72 @@ public class ObjectEntryResourceImpl
 			_objectDefinitions.get(contextCompany.getCompanyId()));
 	}
 
+	private void _addChildDefinitionsRecursive(
+		long currentDefId, List<String> childNames, Set<Long> visitedDefIds,
+		int currentDepth, int maxDepth) {
+
+		if (currentDepth > maxDepth) {
+			return;
+		}
+
+		if (visitedDefIds.contains(currentDefId)) {
+			return;
+		}
+		visitedDefIds.add(currentDefId);
+
+		List<ObjectRelationship> relationships =
+			_objectRelationshipLocalService.getObjectRelationships(currentDefId, true);
+
+		for (ObjectRelationship rel : relationships) {
+			if (rel.isEdge()) {
+
+				String childShortName = _getChildDefinitionShortName(rel, currentDefId);
+
+				if (!childNames.contains(childShortName)) {
+					childNames.add(childShortName);
+				}
+
+				long nextDefId = rel.getObjectDefinitionId2();
+
+				_addChildDefinitionsRecursive(
+					nextDefId, childNames, visitedDefIds,
+					currentDepth + 1, maxDepth);
+			}
+		}
+	}
+
+	private String _getChildDefinitionShortName(
+		ObjectRelationship relationship, long currentDefId) {
+
+		long childDefId = relationship.getObjectDefinitionId2();
+
+		try {
+			ObjectDefinition childDef =
+				_objectDefinitionLocalService.getObjectDefinition(childDefId);
+
+			return childDef.getShortName();
+		}
+		catch (Exception e) {
+			return "unknown";
+		}
+	}
+
 	@Override
 	public ExportImportDescriptor getExportImportDescriptor() {
 		return new ExportImportDescriptor() {
+
+			@Override
+			public List<String> getRootModelHierarchy(){
+				List<String> childDefinitionShortNames = new ArrayList<>();
+
+				if (_objectDefinition.isRootNode()) {
+					int maxDepth = 4;
+					_addChildDefinitionsRecursive(
+						_objectDefinition.getObjectDefinitionId(), childDefinitionShortNames, new HashSet<Long>(), 1, maxDepth);
+				}
+
+				return childDefinitionShortNames;
+			}
 
 			@Override
 			public String getModelClassName() {

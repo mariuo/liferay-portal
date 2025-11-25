@@ -464,6 +464,14 @@ public class BatchEnginePortletDataHandler extends BasePortletDataHandler {
 			manifestSummary, portletDataHandlerControls);
 	}
 
+	@Override
+	public List<String> getRootModelHierarchy() {
+		ExportImportVulcanBatchEngineTaskItemDelegate.ExportImportDescriptor
+			exportImportDescriptor = _registrations.get(0).getExportImportDescriptor();
+
+		return exportImportDescriptor.getRootModelHierarchy();
+	}
+
 	protected static final TransactionConfig transactionConfig =
 		TransactionConfig.Factory.create(
 			Propagation.REQUIRES_NEW, new Class<?>[] {Exception.class});

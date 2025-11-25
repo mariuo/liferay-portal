@@ -10,6 +10,8 @@ import com.liferay.portal.kernel.model.Portlet;
 
 import jakarta.portlet.PortletPreferences;
 
+import java.util.List;
+
 /**
  * A <code>PortletDataHandler</code> is a special class capable of exporting and
  * importing portlet specific data to a Liferay Archive file (LAR) when a site's
@@ -179,6 +181,8 @@ public interface PortletDataHandler {
 	public int getRank();
 
 	public String getResourceName();
+
+	public List<String> getRootModelHierarchy();
 
 	/**
 	 * Returns the schema version for this data handler, which represents the

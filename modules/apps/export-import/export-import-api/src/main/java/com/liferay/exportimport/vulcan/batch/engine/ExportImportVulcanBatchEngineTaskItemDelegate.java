@@ -37,6 +37,10 @@ public interface ExportImportVulcanBatchEngineTaskItemDelegate<T>
 			return null;
 		}
 
+		public default List<String> getRootModelHierarchy() {
+			return null;
+		}
+
 		public default Map<String, Serializable> getParameters(
 			PortletDataContext portletDataContext) {
 

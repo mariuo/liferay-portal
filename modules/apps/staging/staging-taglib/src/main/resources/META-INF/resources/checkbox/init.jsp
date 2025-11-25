@@ -20,6 +20,7 @@ String name = GetterUtil.getString(request.getAttribute("liferay-staging:checkbo
 String popoverTextKey = GetterUtil.getString(request.getAttribute("liferay-staging:checkbox:popover"));
 String suggestionKey = GetterUtil.getString(request.getAttribute("liferay-staging:checkbox:suggestion"));
 String warningKey = GetterUtil.getString(request.getAttribute("liferay-staging:checkbox:warning"));
+boolean rootmodel = GetterUtil.getBoolean(request.getAttribute("liferay-staging:checkbox:rootModel"));
 
 if (Validator.isNull(id)) {
 	id = name;

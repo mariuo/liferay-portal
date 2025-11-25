@@ -41,6 +41,11 @@ import java.util.function.Supplier;
 public abstract class BasePortletDataHandler implements PortletDataHandler {
 
 	@Override
+	public List<String> getRootModelHierarchy() {
+		return null;
+	}
+
+	@Override
 	public PortletPreferences addDefaultData(
 			PortletDataContext portletDataContext, String portletId,
 			PortletPreferences portletPreferences)

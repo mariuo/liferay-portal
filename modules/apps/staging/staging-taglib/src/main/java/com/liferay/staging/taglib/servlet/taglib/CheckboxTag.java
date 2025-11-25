@@ -48,6 +48,11 @@ public class CheckboxTag extends BaseCssTag {
 		return _suggestion;
 	}
 
+	public boolean getRootModel() {
+		return _rootModel;
+	}
+
+
 	@Override
 	public String getTagNameForCssPath() {
 		return "checkbox";
@@ -67,6 +72,10 @@ public class CheckboxTag extends BaseCssTag {
 
 	public void setChecked(boolean checked) {
 		_checked = checked;
+	}
+
+	public void setRootModel(boolean rootModel) {
+		_rootModel = rootModel;
 	}
 
 	public void setDeletions(long deletions) {
@@ -121,6 +130,7 @@ public class CheckboxTag extends BaseCssTag {
 		super.cleanUp();
 
 		_checked = false;
+		_rootModel = false;
 		_deletions = 0;
 		_description = StringPool.BLANK;
 		_disabled = false;
@@ -142,6 +152,8 @@ public class CheckboxTag extends BaseCssTag {
 	protected void setAttributes(HttpServletRequest httpServletRequest) {
 		httpServletRequest.setAttribute(
 			"liferay-staging:checkbox:checked", _checked);
+		httpServletRequest.setAttribute(
+			"liferay-staging:checkbox:rootmodel", _rootModel);	
 		httpServletRequest.setAttribute(
 			"liferay-staging:checkbox:deletions", _deletions);
 		httpServletRequest.setAttribute(
@@ -165,6 +177,7 @@ public class CheckboxTag extends BaseCssTag {
 	private static final String _PAGE = "/checkbox/aui/page.jsp";
 
 	private boolean _checked;
+	private boolean _rootModel;
 	private long _deletions;
 	private String _description = StringPool.BLANK;
 	private boolean _disabled;

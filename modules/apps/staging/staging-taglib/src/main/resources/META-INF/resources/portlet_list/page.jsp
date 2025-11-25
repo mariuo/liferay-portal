@@ -68,6 +68,14 @@ StagingGroupHelper stagingGroupHelper = StagingGroupHelperUtil.getStagingGroupHe
 
 		long modelDeletionCount = manifestSummary.getModelDeletionCount(portletDataHandler.getDeletionSystemEventStagedModelTypes());
 
+		List<String> rootModels = portletDataHandler.getRootModelHierarchy();
+
+		boolean rootModel = false;
+
+		if(rootModels != null && rootModels.size() > 0 ){
+			rootModel = true;
+		}
+
 		if ((exportModelCount <= 0) && (modelDeletionCount <= 0) && !showAllPortlets) {
 			continue;
 		}
