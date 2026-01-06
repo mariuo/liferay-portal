@@ -1,0 +1,7 @@
+{
+	"contentType": {
+		"className": "com.liferay.object.model.ObjectDefinition#M1M2"
+	},
+	"defaultTemplate": true,
+	"name": "Team"
+}

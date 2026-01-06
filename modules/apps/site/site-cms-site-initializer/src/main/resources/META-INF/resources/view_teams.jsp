@@ -14,11 +14,13 @@ ViewTeamsDisplayContext viewTeamsDisplayContext = (ViewTeamsDisplayContext)reque
 <div class="cms-section custom-empty-state">
 	<frontend-data-set:headless-display
 		apiURL="<%= viewTeamsDisplayContext.getAPIURL() %>"
+		creationMenu="<%= viewTeamsDisplayContext.getCreationMenu() %>"
 		emptyState="<%= viewTeamsDisplayContext.getEmptyState() %>"
 		fdsActionDropdownItems="<%= viewTeamsDisplayContext.getFDSActionDropdownItems() %>"
 		formName="fm"
 		id="<%= CMSSiteInitializerFDSNames.TEAMS_SECTION %>"
 		itemsPerPage="<%= 20 %>"
+		propsTransformer="{TeamsFDSPropsTransformer} from site-cms-site-initializer"
 		selectedItemsKey="id"
 		selectionType="multiple"
 		style="fluid"

@@ -1,0 +1,138 @@
+{
+	"pageElement": {
+		"id": "ec262edd-a49c-04a3-de96-b779cc7e137a",
+		"pageElements": [
+			{
+				"definition": {
+					"fragmentStyle": {
+						"paddingBottom": "40px",
+						"paddingLeft": "12px",
+						"paddingRight": "12px",
+						"paddingTop": "40px"
+					},
+					"indexed": true,
+					"layout": {
+						"paddingBottom": 6,
+						"paddingTop": 6
+					}
+				},
+				"id": "b6f7f7c2-1e7d-794b-1db9-2a93fd19bcc3",
+				"pageElements": [
+					{
+						"definition": {
+							"indexed": true,
+							"layout": {
+								"widthType": "Fixed"
+							}
+						},
+						"id": "7adbf573-9730-e54f-68df-69d1bf3542e9",
+						"pageElements": [
+							{
+								"definition": {
+									"fragment": {
+										"key": "localization-select"
+									},
+									"fragmentConfig": {
+										"allowLocalizationManagement": true,
+										"hideLanguageLabel": false,
+										"size": "small"
+									},
+									"fragmentFields": [
+									],
+									"fragmentStyle": {
+										"marginBottom": "5"
+									},
+									"indexed": true
+								},
+								"id": "0152d0b9-593e-24ed-6654-330a30b43473",
+								"type": "Fragment"
+							},
+							{
+								"definition": {
+									"formConfig": {
+										"formReference": {
+											"contextSource": "DisplayPageItem"
+										},
+										"formType": "simple",
+										"numberOfSteps": 0
+									},
+									"indexed": true,
+									"layout": {
+									}
+								},
+								"id": "3de265bd-872b-05e1-3b1e-f2dbca2b2ff0",
+								"pageElements": [
+									{
+										"definition": {
+											"fragment": {
+												"key": "INPUTS-inline-text-input"
+											},
+											"fragmentConfig": {
+												"inputFieldId": "ObjectField_title",
+												"placeholder": {
+													"en_US": "New Teams"
+												},
+												"showCharactersCount": false
+											},
+											"fragmentFields": [
+											],
+											"fragmentStyle": {
+												"marginBottom": "5"
+											},
+											"indexed": true
+										},
+										"type": "Fragment"
+									},
+									{
+										"definition": {
+											"fragment": {
+												"key": "INPUTS-rich-text-input"
+											},
+											"fragmentConfig": {
+												"inputFieldId": "ObjectField_description"
+											},
+											"fragmentFields": [
+											],
+											"fragmentStyle": {
+												"marginBottom": "3"
+											},
+											"indexed": true
+										},
+										"type": "Fragment"
+									},
+									{
+										"definition": {
+											"fragment": {
+												"key": "INPUTS-numeric-input"
+											},
+											"fragmentConfig": {
+												"inputFieldId": "ObjectField_size"
+											},
+											"fragmentFields": [
+											],
+											"fragmentStyle": {
+												"marginBottom": "3"
+											},
+											"indexed": true
+										},
+										"type": "Fragment"
+									}
+								],
+								"type": "Form"
+							}
+						],
+						"type": "Section"
+					}
+				],
+				"type": "Section"
+			}
+		],
+		"type": "Root"
+	},
+	"settings": {
+		"masterPage": {
+			"key": "content-editor-master"
+		}
+	},
+	"version": 1.1
+}
