@@ -209,6 +209,10 @@ public class ObjectDefinitionUtil {
 		).put(
 			"MCPServerPrompt", "/mcp/server-prompts"
 		).put(
+			"ObjectBulkActionTask", "/cms/bulk-action-tasks"
+		).put(
+			"ObjectBulkActionTaskItem","/cms/bulk-action-items"
+		).put(
 			"NecessaryCookieEntry", "/necessary-cookies-entries"
 		).put(
 			"PerformanceCookieEntry", "/performance-cookies-entries"

@@ -40,5 +40,41 @@ export default function ViewObjectEntriesFDSPropsTransformer({...otherProps}) {
 				});
 			}
 		},
+	onBulkActionItemClick: async ({
+    			action,
+    			selectedData,
+    		}: {
+    			action: any;
+    			selectedData: any;
+    		}) => {
+    			if (action?.data?.id === 'delete') {
+    				console.log('action: ', action);
+    				console.log('selectedData: ', selectedData);
+
+
+
+    				const bulkActionItems = (selectedData?.items || []).map(
+    					(item) => ({
+    						classExternalReferenceCode: item.externalReferenceCode,
+    						className:
+    							'com.liferay.object.model.ObjectDefinition#B1H2',
+    						classPK: item.id,
+    					})
+    				);
+
+    				const response = await AssetBulkActionTaskService.createTask(
+    					{
+    						bulkActionItems,
+    						selectionScope: {
+    							selectAll: selectedData.selectAll,
+    						},
+    						type: 'DeleteBulkAction',
+    					},
+    					'http://localhost:8080/o/bulk/v1.0/bulk-action'
+    				);
+
+    				console.log('response: ', response);
+    			}
+    		},
 	};
 }

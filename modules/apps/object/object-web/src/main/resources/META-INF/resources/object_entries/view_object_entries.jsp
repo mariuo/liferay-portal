@@ -29,6 +29,9 @@ ObjectDefinition objectDefinition = viewObjectEntriesDisplayContext.getObjectDef
 			portletURL="<%= liferayPortletResponse.createRenderURL() %>"
 			propsTransformer="{ViewObjectEntriesFDSPropsTransformer} from object-web"
 			style="fluid"
+			bulkActionDropdownItems="<%= viewObjectEntriesDisplayContext.getBulkActionDropdownItems() %>"
+			selectionType="multiple"
+			showSelectAll="<%= true %>"
 		/>
 
 		<div>
