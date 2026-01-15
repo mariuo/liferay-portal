@@ -5,6 +5,7 @@
 
 import React from 'react';
 
+import AssetBulkActionTaskService from '../../common/services/AssetBulkActionTaskService';
 import DecimalDataRenderer from './FDSDataRenderers/DecimalDataRenderer';
 import MultiselectPicklistDataRenderer from './FDSDataRenderers/MultiselectPicklistDataRenderer';
 import ObjectEntryStatusDataRenderer from './FDSDataRenderers/ObjectEntryStatusDataRenderer';
@@ -14,7 +15,10 @@ type ObjectEntryStatusDataRendererProps = {
 	restContextPath: string;
 };
 
-export default function ViewObjectEntriesFDSPropsTransformer({...otherProps}) {
+export default function ViewObjectEntriesFDSPropsTransformer({
+	...otherProps
+}: {}) {
+
 	return {
 		...otherProps,
 		customDataRenderers: {
@@ -40,41 +44,39 @@ export default function ViewObjectEntriesFDSPropsTransformer({...otherProps}) {
 				});
 			}
 		},
-	onBulkActionItemClick: async ({
-    			action,
-    			selectedData,
-    		}: {
-    			action: any;
-    			selectedData: any;
-    		}) => {
-    			if (action?.data?.id === 'delete') {
-    				console.log('action: ', action);
-    				console.log('selectedData: ', selectedData);
+		onBulkActionItemClick: async ({
+			action,
+			selectedData,
+		}: {
+			action: any;
+			selectedData: any;
+		}) => {
+			if (action?.data?.id === 'delete') {
+				console.log('action: ', action);
+				console.log('selectedData: ', selectedData);
 
+				const bulkActionItems = (selectedData?.items || []).map(
+					(item) => ({
+						classExternalReferenceCode: item.externalReferenceCode,
+						className:
+							'com.liferay.object.model.ObjectDefinition#C7A0',
+						classPK: item.id,
+					})
+				);
 
+				const response = await AssetBulkActionTaskService.createTask(
+					{
+						bulkActionItems,
+						selectionScope: {
+							selectAll: selectedData.selectAll,
+						},
+						type: 'DeleteBulkAction',
+					},
+					'http://localhost:8080/o/bulk/v1.0/bulk-action'
+				);
 
-    				const bulkActionItems = (selectedData?.items || []).map(
-    					(item) => ({
-    						classExternalReferenceCode: item.externalReferenceCode,
-    						className:
-    							'com.liferay.object.model.ObjectDefinition#B1H2',
-    						classPK: item.id,
-    					})
-    				);
-
-    				const response = await AssetBulkActionTaskService.createTask(
-    					{
-    						bulkActionItems,
-    						selectionScope: {
-    							selectAll: selectedData.selectAll,
-    						},
-    						type: 'DeleteBulkAction',
-    					},
-    					'http://localhost:8080/o/bulk/v1.0/bulk-action'
-    				);
-
-    				console.log('response: ', response);
-    			}
-    		},
+				console.log('response: ', response);
+			}
+		},
 	};
 }
