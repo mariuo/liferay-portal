@@ -138,7 +138,7 @@ public class BulkActionResourceImpl extends BaseBulkActionResourceImpl {
 
 		BulkAction.Type type = bulkAction.getType();
 
-		BulkActionTask bulkActionTask = _addBulkActionTask(type);
+		BulkActionTask bulkActionTask = _addBulkActionTask(scope, type);
 
 		_bulkSelectionRunner.run(
 			contextUser, bulkSelection, _getBulkSelectionAction(type),
@@ -224,14 +224,20 @@ public class BulkActionResourceImpl extends BaseBulkActionResourceImpl {
 			filter, pagination, search, sorts[0]);
 	}
 
-	private BulkActionTask _addBulkActionTask(BulkAction.Type type)
+	private BulkActionTask _addBulkActionTask(
+			String scope, BulkAction.Type type)
 		throws Exception {
+
+		String typeString = type.toString();
+
+		if ((scope != null) && scope.contains("objectEntry")) {
+			return new BulkActionTask();
+		}
 
 		ObjectDefinition objectDefinition =
 			_objectDefinitionLocalService.
 				getObjectDefinitionByExternalReferenceCode(
 					"L_CMS_BULK_ACTION_TASK", contextCompany.getCompanyId());
-		String typeString = type.toString();
 
 		ObjectEntry objectEntry = _objectEntryLocalService.addObjectEntry(
 			0, contextUser.getUserId(),

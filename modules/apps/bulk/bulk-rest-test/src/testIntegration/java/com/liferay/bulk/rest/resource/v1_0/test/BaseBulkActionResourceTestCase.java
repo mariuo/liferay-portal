@@ -17,6 +17,7 @@ import com.liferay.bulk.rest.client.dto.v1_0.BulkAction;
 import com.liferay.bulk.rest.client.dto.v1_0.BulkActionTask;
 import com.liferay.bulk.rest.client.dto.v1_0.DefaultPermissionBulkAction;
 import com.liferay.bulk.rest.client.dto.v1_0.DeleteBulkAction;
+import com.liferay.bulk.rest.client.dto.v1_0.DeleteObjectEntryBulkAction;
 import com.liferay.bulk.rest.client.dto.v1_0.KeywordBulkAction;
 import com.liferay.bulk.rest.client.dto.v1_0.MoveBulkAction;
 import com.liferay.bulk.rest.client.dto.v1_0.PermissionBulkAction;
@@ -349,6 +350,18 @@ public abstract class BaseBulkActionResourceTestCase {
 				if (((DefaultPermissionBulkAction)bulkAction).getTreePath() ==
 						null) {
 
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("scope", additionalAssertFieldName)) {
+				if (!(bulkAction instanceof DeleteBulkAction)) {
+					continue;
+				}
+
+				if (((DeleteBulkAction)bulkAction).getScope() == null) {
 					valid = false;
 				}
 
@@ -819,6 +832,23 @@ public abstract class BaseBulkActionResourceTestCase {
 							getTreePath(),
 						((DefaultPermissionBulkAction)bulkAction2).
 							getTreePath())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("scope", additionalAssertFieldName)) {
+				if (!(bulkAction1 instanceof DeleteBulkAction) ||
+					!(bulkAction2 instanceof DeleteBulkAction)) {
+
+					continue;
+				}
+
+				if (!Objects.deepEquals(
+						((DeleteBulkAction)bulkAction1).getScope(),
+						((DeleteBulkAction)bulkAction2).getScope())) {
 
 					return false;
 				}
@@ -1330,7 +1360,19 @@ public abstract class BaseBulkActionResourceTestCase {
 			() -> {
 				DeleteBulkAction bulkAction = new DeleteBulkAction();
 
+				bulkAction.setScope(
+					StringUtil.toLowerCase(RandomTestUtil.randomString()));
+
 				bulkAction.setType(BulkAction.Type.create("DeleteBulkAction"));
+
+				return bulkAction;
+			},
+			() -> {
+				DeleteObjectEntryBulkAction bulkAction =
+					new DeleteObjectEntryBulkAction();
+
+				bulkAction.setType(
+					BulkAction.Type.create("DeleteObjectEntryBulkAction"));
 
 				return bulkAction;
 			},

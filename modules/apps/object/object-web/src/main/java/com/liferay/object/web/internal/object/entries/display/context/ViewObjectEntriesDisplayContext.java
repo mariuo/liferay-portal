@@ -89,6 +89,14 @@ public class ViewObjectEntriesDisplayContext {
 		return _apiURL + _getQueryString();
 	}
 
+	public List<DropdownItem> getBulkActionDropdownItems() {
+		return ListUtil.fromArray(
+			new FDSActionDropdownItem(
+				"#", "trash", "delete",
+				LanguageUtil.get(_httpServletRequest, "delete"), null, null,
+				null));
+	}
+
 	public String getByExternalReferenceCodePath() {
 		return _apiURL + "/by-external-reference-code";
 	}
@@ -397,14 +405,6 @@ public class ViewObjectEntriesDisplayContext {
 		}
 
 		return "searchByObjectView";
-	}
-
-	public List<DropdownItem> getBulkActionDropdownItems() {
-		return ListUtil.fromArray(
-			new FDSActionDropdownItem(
-				"#", "trash", "delete",
-				LanguageUtil.get(_httpServletRequest, "delete"), null, null,
-				null));
 	}
 
 	private static final Log _log = LogFactoryUtil.getLog(

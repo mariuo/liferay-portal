@@ -52,6 +52,10 @@ import java.util.function.Supplier;
 			name = "DeleteBulkAction", value = DeleteBulkAction.class
 		),
 		@JsonSubTypes.Type(
+			name = "DeleteObjectEntryBulkAction",
+			value = DeleteObjectEntryBulkAction.class
+		),
+		@JsonSubTypes.Type(
 			name = "KeywordBulkAction", value = KeywordBulkAction.class
 		),
 		@JsonSubTypes.Type(
@@ -318,6 +322,7 @@ public abstract class BulkAction implements Serializable {
 
 		DEFAULT_PERMISSION_BULK_ACTION("DefaultPermissionBulkAction"),
 		DELETE_BULK_ACTION("DeleteBulkAction"),
+		DELETE_OBJECT_ENTRY_BULK_ACTION("DeleteObjectEntryBulkAction"),
 		KEYWORD_BULK_ACTION("KeywordBulkAction"),
 		MOVE_BULK_ACTION("MoveBulkAction"),
 		PERMISSION_BULK_ACTION("PermissionBulkAction"),

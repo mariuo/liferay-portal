@@ -98,6 +98,7 @@ export interface IBulkActionTaskType {
 		treePath?: string;
 	};
 	DeleteBulkAction: {};
+	DeleteObjectEntryBulkAction: {};
 	DownloadBulkAction: {};
 	KeywordBulkAction: {
 		keywords: string[];
@@ -116,6 +117,7 @@ export interface IBulkActionTaskType {
 }
 
 export type TBulkActionTaskDTO = {
+	scope?: string;
 	bulkActionItems: IBulkActionFDSDataItemTransformed[] | [];
 	selectionScope: IBulkActionSelectionScope | null;
 	type: keyof IBulkActionTaskType;

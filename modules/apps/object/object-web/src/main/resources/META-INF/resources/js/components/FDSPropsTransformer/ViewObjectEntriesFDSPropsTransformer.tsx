@@ -18,7 +18,6 @@ type ObjectEntryStatusDataRendererProps = {
 export default function ViewObjectEntriesFDSPropsTransformer({
 	...otherProps
 }: {}) {
-
 	return {
 		...otherProps,
 		customDataRenderers: {
@@ -58,11 +57,16 @@ export default function ViewObjectEntriesFDSPropsTransformer({
 				const bulkActionItems = (selectedData?.items || []).map(
 					(item) => ({
 						classExternalReferenceCode: item.externalReferenceCode,
-						className:
-							'com.liferay.object.model.ObjectDefinition#C7A0',
+						className: '',
 						classPK: item.id,
 					})
 				);
+
+				const url = new URL(
+					'http://localhost:8080/o/bulk/v1.0/bulk-action'
+				);
+
+				url.searchParams.set('scope', 'objectEntry');
 
 				const response = await AssetBulkActionTaskService.createTask(
 					{
@@ -72,7 +76,7 @@ export default function ViewObjectEntriesFDSPropsTransformer({
 						},
 						type: 'DeleteBulkAction',
 					},
-					'http://localhost:8080/o/bulk/v1.0/bulk-action'
+					url.toString()
 				);
 
 				console.log('response: ', response);

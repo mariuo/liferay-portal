@@ -5,6 +5,7 @@
 
 package com.liferay.bulk.rest.client.dto.v1_0;
 
+import com.liferay.bulk.rest.client.function.UnsafeSupplier;
 import com.liferay.bulk.rest.client.serdes.v1_0.DeleteBulkActionSerDes;
 
 import jakarta.annotation.Generated;
@@ -24,6 +25,27 @@ public class DeleteBulkAction
 	public static DeleteBulkAction toDTO(String json) {
 		return DeleteBulkActionSerDes.toDTO(json);
 	}
+
+	public String getScope() {
+		return scope;
+	}
+
+	public void setScope(String scope) {
+		this.scope = scope;
+	}
+
+	public void setScope(
+		UnsafeSupplier<String, Exception> scopeUnsafeSupplier) {
+
+		try {
+			scope = scopeUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected String scope;
 
 	@Override
 	public DeleteBulkAction clone() throws CloneNotSupportedException {

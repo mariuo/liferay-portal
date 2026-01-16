@@ -196,9 +196,26 @@ async function batch({
 	}
 }
 
-async function post<T>(url: string, data?: Record<string, any>) {
+async function post<T>(
+	url: string,
+	data?: Record<string, any>,
+	params?: Record<string, string | number | boolean>
+) {
+	const queryString = params
+		? `?${new URLSearchParams(
+				Object.entries(params).reduce<Record<string, string>>(
+					(acc, [key, value]) => {
+						acc[key] = String(value);
+
+						return acc;
+					},
+					{}
+				)
+			).toString()}`
+		: '';
+
 	return handleRequest<T>(() =>
-		fetch(url, {
+		fetch(`${url}${queryString}`, {
 			body: JSON.stringify(data),
 			headers: HEADERS,
 			method: 'POST',

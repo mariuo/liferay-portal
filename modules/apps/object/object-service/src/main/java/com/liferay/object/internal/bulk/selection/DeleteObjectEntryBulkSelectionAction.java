@@ -7,7 +7,6 @@ package com.liferay.object.internal.bulk.selection;
 
 import com.liferay.bulk.selection.BulkSelection;
 import com.liferay.bulk.selection.BulkSelectionAction;
-import com.liferay.object.constants.ObjectEntryFolderConstants;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectEntry;
 import com.liferay.object.model.ObjectEntryFolder;
@@ -16,15 +15,12 @@ import com.liferay.object.rest.manager.v1_0.DefaultObjectEntryManagerProvider;
 import com.liferay.object.rest.manager.v1_0.ObjectEntryManagerRegistry;
 import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.object.service.ObjectEntryFolderLocalService;
-import com.liferay.object.service.ObjectEntryLocalService;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.service.ServiceContext;
-import com.liferay.portal.kernel.util.GetterUtil;
-import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.trash.TrashHelper;
 
 import java.io.Serializable;
@@ -41,10 +37,10 @@ import org.osgi.service.component.annotations.Reference;
  * @author Andrea Sbarra
  */
 @Component(
-	property = "bulk.selection.action.key=delete.object",
+	property = "bulk.selection.action.key=delete.object.entry",
 	service = BulkSelectionAction.class
 )
-public class DeleteObjectBulkSelectionAction
+public class DeleteObjectEntryBulkSelectionAction
 	implements BulkSelectionAction<Object> {
 
 	@Override
@@ -53,49 +49,18 @@ public class DeleteObjectBulkSelectionAction
 			Map<String, Serializable> inputMap)
 		throws Exception {
 
-		boolean hasBulkActionTask = _hasBulkActionTask(inputMap);
-
-		long bulkActionTaskId = GetterUtil.getLong(
-			inputMap.get("bulkActionTaskId"));
-
-		ObjectEntry objectEntry = null;
 		Map<String, Serializable> values = new HashMap<>();
-
-		if (hasBulkActionTask) {
-			objectEntry = _objectEntryLocalService.getObjectEntry(
-				bulkActionTaskId);
-
-			values = objectEntry.getValues();
-		}
 
 		values.put("numberOfItems", bulkSelection.getSize());
 
 		String executionStatus = "completed";
+
 		AtomicInteger numberOfFailedItems = new AtomicInteger(0);
 		AtomicInteger numberOfSuccessfulItems = new AtomicInteger(0);
 
 		try {
-			long companyId;
-
-			if (hasBulkActionTask) {
-				values.put("executionStatus", "started");
-
-				objectEntry = _partialUpdateObjectEntry(
-					user.getUserId(), objectEntry, values);
-
-				values = objectEntry.getValues();
-
-				companyId = objectEntry.getCompanyId();
-			}
-			else {
-				companyId = user.getCompanyId();
-			}
-
 			bulkSelection.forEach(
 				object -> {
-					long objectDefinitionId = _getObjectDefinitionId(companyId);
-					String status = "completed";
-
 					try {
 						if (object instanceof ObjectEntry) {
 							ObjectEntry objectObjectEntry = (ObjectEntry)object;
@@ -135,30 +100,6 @@ public class DeleteObjectBulkSelectionAction
 						}
 
 						numberOfFailedItems.getAndIncrement();
-						status = "failed";
-					}
-					finally {
-						if (!hasBulkActionTask) {
-							return;
-						}
-
-						_objectEntryLocalService.addObjectEntry(
-							0, user.getUserId(), objectDefinitionId,
-							ObjectEntryFolderConstants.
-								PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT,
-							null,
-							HashMapBuilder.<String, Serializable>put(
-								"bulkActionTaskId", bulkActionTaskId
-							).put(
-								"executionStatus", status
-							).put(
-								"r_cmsBATaskToCMSBATaskItems_c_cmsBulkActionT" +
-									"askId",
-								bulkActionTaskId
-							).put(
-								"type", "ObjectEntryFolder"
-							).build(),
-							new ServiceContext());
 					}
 				});
 		}
@@ -175,12 +116,6 @@ public class DeleteObjectBulkSelectionAction
 			values.put("numberOfFailedItems", numberOfFailedItems.get());
 			values.put(
 				"numberOfSuccessfulItems", numberOfSuccessfulItems.get());
-
-			if (!hasBulkActionTask) {
-				return;
-			}
-
-			_partialUpdateObjectEntry(user.getUserId(), objectEntry, values);
 		}
 	}
 
@@ -201,47 +136,14 @@ public class DeleteObjectBulkSelectionAction
 		}
 	}
 
-	private long _getObjectDefinitionId(long companyId) throws PortalException {
-		ObjectDefinition objectDefinition =
-			_objectDefinitionLocalService.
-				getObjectDefinitionByExternalReferenceCode(
-					"L_CMS_BULK_ACTION_TASK_ITEM", companyId);
-
-		return objectDefinition.getObjectDefinitionId();
-	}
-
-	private boolean _hasBulkActionTask(Map<String, Serializable> inputMap) {
-		long bulkActionTaskId = GetterUtil.getLong(
-			inputMap.get("bulkActionTaskId"));
-
-		if (bulkActionTaskId > 0) {
-			return true;
-		}
-
-		return false;
-	}
-
-	private ObjectEntry _partialUpdateObjectEntry(
-			long userId, ObjectEntry objectEntry,
-			Map<String, Serializable> values)
-		throws PortalException {
-
-		return _objectEntryLocalService.partialUpdateObjectEntry(
-			userId, objectEntry.getObjectEntryId(),
-			objectEntry.getObjectEntryFolderId(), values, new ServiceContext());
-	}
-
 	private static final Log _log = LogFactoryUtil.getLog(
-		DeleteObjectBulkSelectionAction.class);
+		DeleteObjectEntryBulkSelectionAction.class);
 
 	@Reference
 	private ObjectDefinitionLocalService _objectDefinitionLocalService;
 
 	@Reference
 	private ObjectEntryFolderLocalService _objectEntryFolderLocalService;
-
-	@Reference
-	private ObjectEntryLocalService _objectEntryLocalService;
 
 	@Reference
 	private ObjectEntryManagerRegistry _objectEntryManagerRegistry;

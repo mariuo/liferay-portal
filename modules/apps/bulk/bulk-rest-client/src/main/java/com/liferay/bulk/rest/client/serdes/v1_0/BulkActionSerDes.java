@@ -9,6 +9,7 @@ import com.liferay.bulk.rest.client.dto.v1_0.BulkAction;
 import com.liferay.bulk.rest.client.dto.v1_0.BulkActionItem;
 import com.liferay.bulk.rest.client.dto.v1_0.DefaultPermissionBulkAction;
 import com.liferay.bulk.rest.client.dto.v1_0.DeleteBulkAction;
+import com.liferay.bulk.rest.client.dto.v1_0.DeleteObjectEntryBulkAction;
 import com.liferay.bulk.rest.client.dto.v1_0.KeywordBulkAction;
 import com.liferay.bulk.rest.client.dto.v1_0.MoveBulkAction;
 import com.liferay.bulk.rest.client.dto.v1_0.PermissionBulkAction;
@@ -62,6 +63,11 @@ public class BulkActionSerDes {
 			if (typeString.equals("DeleteBulkAction")) {
 				return DeleteBulkActionSerDes.toJSON(
 					(DeleteBulkAction)bulkAction);
+			}
+
+			if (typeString.equals("DeleteObjectEntryBulkAction")) {
+				return DeleteObjectEntryBulkActionSerDes.toJSON(
+					(DeleteObjectEntryBulkAction)bulkAction);
 			}
 
 			if (typeString.equals("KeywordBulkAction")) {
@@ -184,6 +190,10 @@ public class BulkActionSerDes {
 
 				if (typeString.equals("DeleteBulkAction")) {
 					return DeleteBulkAction.toDTO(json);
+				}
+
+				if (typeString.equals("DeleteObjectEntryBulkAction")) {
+					return DeleteObjectEntryBulkAction.toDTO(json);
 				}
 
 				if (typeString.equals("KeywordBulkAction")) {

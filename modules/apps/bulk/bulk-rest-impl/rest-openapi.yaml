@@ -13,6 +13,7 @@ components:
                 mapping:
                     DefaultPermissionBulkAction: "#/components/schemas/DefaultPermissionBulkAction"
                     DeleteBulkAction: "#/components/schemas/DeleteBulkAction"
+                    DeleteObjectEntryBulkAction: "#/components/schemas/DeleteObjectEntryBulkAction"
                     KeywordBulkAction: "#/components/schemas/KeywordBulkAction"
                     MoveBulkAction: "#/components/schemas/MoveBulkAction"
                     PermissionBulkAction: "#/components/schemas/PermissionBulkAction"
@@ -31,6 +32,7 @@ components:
                     enum:
                         -   DefaultPermissionBulkAction
                         -   DeleteBulkAction
+                        -   DeleteObjectEntryBulkAction
                         -   KeywordBulkAction
                         -   MoveBulkAction
                         -   PermissionBulkAction
@@ -92,6 +94,12 @@ components:
         DeleteBulkAction:
             allOf:
                 -   $ref: "#/components/schemas/BulkAction"
+                -   properties:
+                        scope:
+                            type: string
+        DeleteObjectEntryBulkAction:
+            allOf:
+                -   $ref: "#/components/schemas/BulkAction"
         DocumentBulkSelection:
             properties:
                 documentIds:
@@ -147,6 +155,23 @@ components:
                                 The object entry folder's ID.
                             format: int64
                             type: integer
+        ObjectEntryBulk:
+            properties:
+                name:
+                    type: string
+        ObjectEntryBulkSelection:
+            allOf:
+                -   $ref: "#/components/schemas/DocumentBulkSelection"
+                    x-merge-properties: false
+                -   properties:
+                        keywordsToAdd:
+                            items:
+                                type: string
+                            type: array
+                        keywordsToRemove:
+                            items:
+                                type: string
+                            type: array
         PermissionBulkAction:
             allOf:
                 -   $ref: "#/components/schemas/BulkAction"
@@ -246,7 +271,7 @@ components:
 info:
     description:
         "A Java client JAR is available for use with the group ID 'com.liferay', artifact ID
-        'com.liferay.bulk.rest.client', and version '3.0.35'."
+        'com.liferay.bulk.rest.client', and version '3.0.36'."
     license:
         name: Apache 2.0
         url: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -510,6 +535,81 @@ paths:
                                     $ref: "#/components/schemas/Keyword"
                                 type: array
             tags: ["Keyword"]
+    "/object-entry-bulk":
+        post:
+            description:
+                Execute a bulk action
+            parameters:
+                -   in: query
+                    name: blueprintExternalReferenceCode
+                    schema:
+                        type: string
+                -   in: query
+                    name: emptySearch
+                    schema:
+                        type: boolean
+                -   in: query
+                    description:
+                        Model class names to be searched for. Defaults to all.
+                    name: entryClassNames
+                    schema:
+                        type: string
+                -   in: query
+                    description:
+                        The list of fields to be returned.
+                    name: fields
+                    schema:
+                        type: string
+                -   in: query
+                    name: filter
+                    schema:
+                        type: string
+                -   in: query
+                    name: nestedFields
+                    schema:
+                        type: string
+                -   in: query
+                    name: page
+                    schema:
+                        type: integer
+                -   in: query
+                    name: pageSize
+                    schema:
+                        type: integer
+                -   in: query
+                    name: restrictFields
+                    schema:
+                        type: string
+                -   in: query
+                    name: scope
+                    schema:
+                        type: string
+                -   in: query
+                    name: search
+                    schema:
+                        type: string
+                -   in: query
+                    name: sort
+                    schema:
+                        type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/BulkAction"
+                    application/xml:
+                        schema:
+                            $ref: "#/components/schemas/BulkAction"
+            responses:
+                200:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/BulkActionTask"
+                        application/xml:
+                            schema:
+                                $ref: "#/components/schemas/BulkActionTask"
+            tags: ["ObjectEntryBulkAction"]
     "/sites/{siteId}/taxonomy-vocabularies/common":
         post:
             operationId: postSiteTaxonomyVocabulariesCommonPage

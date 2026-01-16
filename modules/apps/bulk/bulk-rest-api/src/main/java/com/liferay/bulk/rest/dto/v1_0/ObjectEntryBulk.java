@@ -1,5 +1,5 @@
 /**
- * SPDX-FileCopyrightText: (c) 2025 Liferay, Inc. https://liferay.com
+ * SPDX-FileCopyrightText: (c) 2026 Liferay, Inc. https://liferay.com
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
@@ -33,43 +33,41 @@ import java.util.function.Supplier;
  * @generated
  */
 @Generated("")
-@GraphQLName("DeleteBulkAction")
+@GraphQLName("ObjectEntryBulk")
 @JsonFilter("Liferay.Vulcan")
-@XmlRootElement(name = "DeleteBulkAction")
-public class DeleteBulkAction extends BulkAction implements Serializable {
+@XmlRootElement(name = "ObjectEntryBulk")
+public class ObjectEntryBulk implements Serializable {
 
-	public static DeleteBulkAction toDTO(String json) {
-		return ObjectMapperUtil.readValue(DeleteBulkAction.class, json);
+	public static ObjectEntryBulk toDTO(String json) {
+		return ObjectMapperUtil.readValue(ObjectEntryBulk.class, json);
 	}
 
-	public static DeleteBulkAction unsafeToDTO(String json) {
-		return ObjectMapperUtil.unsafeReadValue(DeleteBulkAction.class, json);
+	public static ObjectEntryBulk unsafeToDTO(String json) {
+		return ObjectMapperUtil.unsafeReadValue(ObjectEntryBulk.class, json);
 	}
 
 	@io.swagger.v3.oas.annotations.media.Schema
-	public String getScope() {
-		if (_scopeSupplier != null) {
-			scope = _scopeSupplier.get();
+	public String getName() {
+		if (_nameSupplier != null) {
+			name = _nameSupplier.get();
 
-			_scopeSupplier = null;
+			_nameSupplier = null;
 		}
 
-		return scope;
+		return name;
 	}
 
-	public void setScope(String scope) {
-		this.scope = scope;
+	public void setName(String name) {
+		this.name = name;
 
-		_scopeSupplier = null;
+		_nameSupplier = null;
 	}
 
 	@JsonIgnore
-	public void setScope(
-		UnsafeSupplier<String, Exception> scopeUnsafeSupplier) {
-
-		_scopeSupplier = () -> {
+	public void setName(UnsafeSupplier<String, Exception> nameUnsafeSupplier) {
+		_nameSupplier = () -> {
 			try {
-				return scopeUnsafeSupplier.get();
+				return nameUnsafeSupplier.get();
 			}
 			catch (RuntimeException runtimeException) {
 				throw runtimeException;
@@ -82,10 +80,10 @@ public class DeleteBulkAction extends BulkAction implements Serializable {
 
 	@GraphQLField
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected String scope;
+	protected String name;
 
 	@JsonIgnore
-	private Supplier<String> _scopeSupplier;
+	private Supplier<String> _nameSupplier;
 
 	@Override
 	public boolean equals(Object object) {
@@ -93,13 +91,13 @@ public class DeleteBulkAction extends BulkAction implements Serializable {
 			return true;
 		}
 
-		if (!(object instanceof DeleteBulkAction)) {
+		if (!(object instanceof ObjectEntryBulk)) {
 			return false;
 		}
 
-		DeleteBulkAction deleteBulkAction = (DeleteBulkAction)object;
+		ObjectEntryBulk objectEntryBulk = (ObjectEntryBulk)object;
 
-		return Objects.equals(toString(), deleteBulkAction.toString());
+		return Objects.equals(toString(), objectEntryBulk.toString());
 	}
 
 	@Override
@@ -114,67 +112,19 @@ public class DeleteBulkAction extends BulkAction implements Serializable {
 
 		sb.append("{");
 
-		String scope = getScope();
+		String name = getName();
 
-		if (scope != null) {
+		if (name != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"scope\": ");
+			sb.append("\"name\": ");
 
 			sb.append("\"");
 
-			sb.append(_escape(scope));
+			sb.append(_escape(name));
 
-			sb.append("\"");
-		}
-
-		BulkActionItem[] bulkActionItems = getBulkActionItems();
-
-		if (bulkActionItems != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"bulkActionItems\": ");
-
-			sb.append("[");
-
-			for (int i = 0; i < bulkActionItems.length; i++) {
-				sb.append(String.valueOf(bulkActionItems[i]));
-
-				if ((i + 1) < bulkActionItems.length) {
-					sb.append(", ");
-				}
-			}
-
-			sb.append("]");
-		}
-
-		SelectionScope selectionScope = getSelectionScope();
-
-		if (selectionScope != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"selectionScope\": ");
-
-			sb.append(String.valueOf(selectionScope));
-		}
-
-		Type type = getType();
-
-		if (type != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"type\": ");
-
-			sb.append("\"");
-			sb.append(type);
 			sb.append("\"");
 		}
 
@@ -185,7 +135,7 @@ public class DeleteBulkAction extends BulkAction implements Serializable {
 
 	@io.swagger.v3.oas.annotations.media.Schema(
 		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
-		defaultValue = "com.liferay.bulk.rest.dto.v1_0.DeleteBulkAction",
+		defaultValue = "com.liferay.bulk.rest.dto.v1_0.ObjectEntryBulk",
 		name = "x-class-name"
 	)
 	public String xClassName;
