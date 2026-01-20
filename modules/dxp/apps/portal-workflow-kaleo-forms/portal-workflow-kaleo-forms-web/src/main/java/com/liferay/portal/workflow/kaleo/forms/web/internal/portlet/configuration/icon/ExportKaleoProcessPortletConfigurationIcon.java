@@ -6,6 +6,7 @@
 package com.liferay.portal.workflow.kaleo.forms.web.internal.portlet.configuration.icon;
 
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
@@ -68,6 +69,10 @@ public class ExportKaleoProcessPortletConfigurationIcon
 
 	@Override
 	public boolean isShow(PortletRequest portletRequest) {
+		if (!FeatureFlagManagerUtil.isEnabled("LPD-74739")) {
+			return false;
+		}
+
 		long kaleoProcessId = ParamUtil.getLong(
 			portletRequest, "kaleoProcessId");
 
