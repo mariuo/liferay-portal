@@ -169,8 +169,10 @@ public class UserNotificationType extends BaseNotificationType {
 			}
 
 			enqueue = true;
-			siteDefaultLocale = portal.getSiteDefaultLocale(user.getGroupId());
-			userLocale = user.getLocale();
+
+			notificationContext.setSiteDefaultLocale(
+				portal.getSiteDefaultLocale(user.getGroupId()));
+			notificationContext.setPreferredLocale(user.getLocale());
 
 			_userNotificationEventLocalService.sendUserNotificationEvents(
 				user.getUserId(), notificationContext.getPortletId(),
@@ -201,8 +203,9 @@ public class UserNotificationType extends BaseNotificationType {
 			User user = userLocalService.getUser(
 				notificationContext.getUserId());
 
-			siteDefaultLocale = portal.getSiteDefaultLocale(user.getGroupId());
-			userLocale = user.getLocale();
+			notificationContext.setSiteDefaultLocale(
+				portal.getSiteDefaultLocale(user.getGroupId()));
+			notificationContext.setPreferredLocale(user.getLocale());
 
 			prepareNotificationContext(
 				user, null, notificationContext, notificationRecipientSettings,
