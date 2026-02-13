@@ -268,16 +268,6 @@ public class EmailNotificationType extends BaseNotificationType {
 		notificationContext.setSiteDefaultLocale(
 			portal.getSiteDefaultLocale(notificationContext.getGroupId()));
 
-		Group group = _groupLocalService.fetchGroup(
-			notificationContext.getGroupId());
-
-		if (group == null) {
-			group = _groupLocalService.getGroup(
-				notificationContext.getCompanyId(), GroupConstants.GUEST);
-
-			notificationContext.setGroupId(group.getGroupId());
-		}
-
 		Map<String, String> evaluatedNotificationRecipientSettings =
 			evaluateNotificationRecipientSettings(
 				notificationTemplate.getCompanyId(), notificationContext,
@@ -307,9 +297,6 @@ public class EmailNotificationType extends BaseNotificationType {
 			evaluatedNotificationRecipientSettings.get(
 				NotificationRecipientSettingConstants.NAME_SINGLE_RECIPIENT));
 
-		Locale locale = notificationContext.getPreferredLocale();
-
-		Map<String, Locale> recipientLocaleMap = new HashMap<>();
 		Map<String, User> recipientUserMap = new HashMap<>();
 		Set<Locale> recipientLocales = new HashSet<>();
 
@@ -322,12 +309,12 @@ public class EmailNotificationType extends BaseNotificationType {
 					notificationContext.getCompanyId());
 			}
 
-			recipientLocaleMap.put(emailAddress, recipientUser.getLocale());
-
 			recipientLocales.add(recipientUser.getLocale());
 
 			recipientUserMap.put(emailAddress, recipientUser);
 		}
+
+		Locale locale = notificationContext.getPreferredLocale();
 
 		boolean hasTranslation = _hasTranslation(
 			locale, recipientLocales, notificationTemplate.getBodyMap());
@@ -338,9 +325,17 @@ public class EmailNotificationType extends BaseNotificationType {
 			singleRecipient = true;
 		}
 
-		if (!singleRecipient) {
-			Locale preferredLocale = locale;
+		Group group = _groupLocalService.fetchGroup(
+			notificationContext.getGroupId());
 
+		if (group == null) {
+			group = _groupLocalService.getGroup(
+				notificationContext.getCompanyId(), GroupConstants.GUEST);
+
+			notificationContext.setGroupId(group.getGroupId());
+		}
+
+		if (!singleRecipient) {
 			if (recipientLocales.size() == 1) {
 				Locale recipientLocale = recipientLocales.iterator(
 				).next();
@@ -348,13 +343,12 @@ public class EmailNotificationType extends BaseNotificationType {
 				Map<Locale, String> bodyMap = notificationTemplate.getBodyMap();
 
 				if ((bodyMap != null) &&
-					Validator.isNotNull(bodyMap.get(recipientLocale))) {
+					Validator.isNotNull(bodyMap.get(recipientLocale)) &&
+					!notificationContext.isUsePreferredLanguageForGuests()) {
 
-					preferredLocale = recipientLocale;
+					notificationContext.setPreferredLocale(recipientLocale);
 				}
 			}
-
-			notificationContext.setPreferredLocale(preferredLocale);
 
 			String body = _formatBody(
 				notificationTemplate.getBodyMap(), group, notificationContext);
@@ -384,9 +378,12 @@ public class EmailNotificationType extends BaseNotificationType {
 		for (String emailAddress : emailAddresses) {
 			User recipientUser = recipientUserMap.get(emailAddress);
 
-			Locale recipientLocale = recipientLocaleMap.get(emailAddress);
+			if (recipientUser.isGuestUser() &&
+				!notificationContext.isUsePreferredLanguageForGuests()) {
 
-			notificationContext.setPreferredLocale(recipientLocale);
+				notificationContext.setPreferredLocale(
+					recipientUser.getLocale());
+			}
 
 			String body = _formatBody(
 				notificationTemplate.getBodyMap(), group, notificationContext);
