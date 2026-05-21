@@ -7,10 +7,14 @@ package com.liferay.ai.hub.web.internal.fragment.renderer;
 
 import com.liferay.ai.hub.web.internal.display.context.EditInstructionDefinitionDisplayContext;
 import com.liferay.fragment.renderer.FragmentRenderer;
+import com.liferay.object.scope.ObjectScopeProviderRegistry;
+import com.liferay.object.service.ObjectDefinitionLocalService;
+import com.liferay.object.service.ObjectEntryService;
 
 import jakarta.servlet.http.HttpServletRequest;
 
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 
 /**
  * @author Carolina Barbosa
@@ -28,12 +32,23 @@ public class EditInstructionDefinitionFragmentRenderer
 	protected EditInstructionDefinitionDisplayContext getDisplayContext(
 		HttpServletRequest httpServletRequest) {
 
-		return new EditInstructionDefinitionDisplayContext(httpServletRequest);
+		return new EditInstructionDefinitionDisplayContext(
+			httpServletRequest, _objectDefinitionLocalService,
+			_objectEntryService, _objectScopeProviderRegistry);
 	}
 
 	@Override
 	protected String getJSPPath() {
 		return "/edit_instruction_definition.jsp";
 	}
+
+	@Reference
+	private ObjectDefinitionLocalService _objectDefinitionLocalService;
+
+	@Reference
+	private ObjectEntryService _objectEntryService;
+
+	@Reference
+	private ObjectScopeProviderRegistry _objectScopeProviderRegistry;
 
 }

@@ -8,6 +8,9 @@ package com.liferay.ai.hub.web.internal.display.context;
 import com.liferay.account.model.AccountEntry;
 import com.liferay.ai.hub.util.AccountEntryUtil;
 import com.liferay.ai.hub.web.internal.util.ActionUtil;
+import com.liferay.object.scope.ObjectScopeProviderRegistry;
+import com.liferay.object.service.ObjectDefinitionLocalService;
+import com.liferay.object.service.ObjectEntryService;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.WebKeys;
@@ -22,9 +25,15 @@ import java.util.Map;
 public class EditInstructionDefinitionDisplayContext {
 
 	public EditInstructionDefinitionDisplayContext(
-		HttpServletRequest httpServletRequest) {
+		HttpServletRequest httpServletRequest,
+		ObjectDefinitionLocalService objectDefinitionLocalService,
+		ObjectEntryService objectEntryService,
+		ObjectScopeProviderRegistry objectScopeProviderRegistry) {
 
 		_httpServletRequest = httpServletRequest;
+		_objectDefinitionLocalService = objectDefinitionLocalService;
+		_objectEntryService = objectEntryService;
+		_objectScopeProviderRegistry = objectScopeProviderRegistry;
 
 		_themeDisplay = (ThemeDisplay)httpServletRequest.getAttribute(
 			WebKeys.THEME_DISPLAY);
@@ -49,10 +58,20 @@ public class EditInstructionDefinitionDisplayContext {
 		).put(
 			"externalReferenceCode",
 			_httpServletRequest.getParameter("externalReferenceCode")
+		).put(
+			"readonly",
+			() -> ActionUtil.isReadOnly(
+				_httpServletRequest.getParameter("externalReferenceCode"),
+				_httpServletRequest, "L_AI_HUB_INSTRUCTION_DEFINITION",
+				_objectDefinitionLocalService, _objectEntryService,
+				_objectScopeProviderRegistry)
 		).build();
 	}
 
 	private final HttpServletRequest _httpServletRequest;
+	private final ObjectDefinitionLocalService _objectDefinitionLocalService;
+	private final ObjectEntryService _objectEntryService;
+	private final ObjectScopeProviderRegistry _objectScopeProviderRegistry;
 	private final ThemeDisplay _themeDisplay;
 
 }

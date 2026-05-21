@@ -32,10 +32,12 @@ export default function InstructionDefinitionForm({
 	accountEntryExternalReferenceCode,
 	backURL,
 	externalReferenceCode,
+	readonly,
 }: {
 	accountEntryExternalReferenceCode: string;
 	backURL: string;
 	externalReferenceCode: string;
+	readonly: boolean;
 }) {
 	const [formData, setFormData] = useState<InstructionDefinition>(
 		{} as InstructionDefinition
@@ -191,6 +193,7 @@ export default function InstructionDefinitionForm({
 						aria-label={Liferay.Language.get('save')}
 						data-title="Save Button"
 						data-title-set-as-html
+						disabled={readonly}
 						onClick={handleSubmit}
 						size="sm"
 					>
@@ -215,6 +218,7 @@ export default function InstructionDefinitionForm({
 										</h2>
 
 										<ClayToggle
+											disabled={readonly}
 											label={Liferay.Language.get(
 												'enable-instruction'
 											)}
@@ -231,6 +235,7 @@ export default function InstructionDefinitionForm({
 
 									<ClayForm.Group>
 										<InputLocalized
+											disabled={readonly}
 											id="title"
 											label={Liferay.Language.get(
 												'title'
@@ -266,6 +271,7 @@ export default function InstructionDefinitionForm({
 										</label>
 
 										<ClayInput
+											disabled={readonly}
 											id="externalReferenceCode"
 											name="externalReferenceCode"
 											onChange={handleInputChange}
@@ -289,6 +295,7 @@ export default function InstructionDefinitionForm({
 
 										<textarea
 											className="form-control"
+											disabled={readonly}
 											id="description"
 											name="description"
 											onChange={handleInputChange}
@@ -313,6 +320,7 @@ export default function InstructionDefinitionForm({
 
 										<textarea
 											className="form-control"
+											disabled={readonly}
 											id="instruction"
 											name="instruction"
 											onChange={handleInputChange}
@@ -337,6 +345,7 @@ export default function InstructionDefinitionForm({
 
 										<Picker
 											className="instruction-definition-form-scope-field"
+											disabled={readonly}
 											items={scopeOptions.map(
 												(option) => ({
 													label:
@@ -385,6 +394,7 @@ export default function InstructionDefinitionForm({
 
 										<textarea
 											className="form-control"
+											disabled={readonly}
 											id="occasion"
 											name="occasion"
 											onChange={handleInputChange}
