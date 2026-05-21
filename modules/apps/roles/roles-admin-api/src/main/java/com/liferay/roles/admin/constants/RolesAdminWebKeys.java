@@ -12,6 +12,9 @@ public class RolesAdminWebKeys {
 
 	public static final String CURRENT_ROLE_TYPE = "CURRENT_ROLE_TYPE";
 
+	public static final String EDIT_ROLE_PERMISSIONS_PORTLET_FILTERS =
+		"EDIT_ROLE_PERMISSIONS_PORTLET_FILTERS";
+
 	public static final String EXCLUDED_PANEL_APP_KEYS =
 		"EXCLUDED_PANEL_APP_KEYS";
 

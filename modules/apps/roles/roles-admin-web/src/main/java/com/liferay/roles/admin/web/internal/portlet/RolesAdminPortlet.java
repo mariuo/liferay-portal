@@ -12,6 +12,8 @@ import com.liferay.application.list.display.context.logic.PanelCategoryHelper;
 import com.liferay.application.list.display.context.logic.PersonalMenuEntryHelper;
 import com.liferay.depot.model.DepotEntry;
 import com.liferay.item.selector.ItemSelector;
+import com.liferay.osgi.service.tracker.collections.list.ServiceTrackerList;
+import com.liferay.osgi.service.tracker.collections.list.ServiceTrackerListFactory;
 import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.reflect.ReflectionUtil;
 import com.liferay.portal.kernel.change.tracking.CTCollectionThreadLocal;
@@ -62,6 +64,7 @@ import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.product.navigation.personal.menu.PersonalMenuEntryRegistry;
 import com.liferay.roles.admin.constants.RolesAdminPortletKeys;
 import com.liferay.roles.admin.constants.RolesAdminWebKeys;
+import com.liferay.roles.admin.edit.role.permissions.portlet.filter.EditRolePermissionsPortletFilter;
 import com.liferay.roles.admin.panel.category.role.type.mapper.PanelCategoryRoleTypeMapper;
 import com.liferay.roles.admin.panel.category.role.type.mapper.PanelCategoryRoleTypeMapperRegistry;
 import com.liferay.roles.admin.role.type.contributor.RoleTypeContributor;
@@ -89,7 +92,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import org.osgi.framework.BundleContext;
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 
 /**
@@ -549,6 +555,12 @@ public class RolesAdminPortlet extends MVCPortlet {
 		}
 	}
 
+	@Activate
+	protected void activate(BundleContext bundleContext) {
+		_editRolePermissionsPortletFilters = ServiceTrackerListFactory.open(
+			bundleContext, EditRolePermissionsPortletFilter.class);
+	}
+
 	@Override
 	protected void checkPermissions(PortletRequest portletRequest)
 		throws Exception {
@@ -567,6 +579,11 @@ public class RolesAdminPortlet extends MVCPortlet {
 		}
 
 		super.checkPermissions(portletRequest);
+	}
+
+	@Deactivate
+	protected void deactivate() {
+		_editRolePermissionsPortletFilters.close();
 	}
 
 	@Override
@@ -726,6 +743,9 @@ public class RolesAdminPortlet extends MVCPortlet {
 
 		if (mvcPath.equals("/edit_role_permissions.jsp")) {
 			portletRequest.setAttribute(
+				RolesAdminWebKeys.EDIT_ROLE_PERMISSIONS_PORTLET_FILTERS,
+				_editRolePermissionsPortletFilters);
+			portletRequest.setAttribute(
 				RolesAdminWebKeys.EXCLUDED_PANEL_APP_KEYS,
 				_getExcludedPanelAppKeys(role));
 			portletRequest.setAttribute(
@@ -863,6 +883,9 @@ public class RolesAdminPortlet extends MVCPortlet {
 			}
 		}
 	}
+
+	private ServiceTrackerList<EditRolePermissionsPortletFilter>
+		_editRolePermissionsPortletFilters;
 
 	@Reference
 	private GroupService _groupService;

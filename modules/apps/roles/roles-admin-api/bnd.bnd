@@ -3,6 +3,7 @@ Bundle-SymbolicName: com.liferay.roles.admin.api
 Bundle-Version: 7.0.2
 Export-Package:\
 	com.liferay.roles.admin.constants,\
+	com.liferay.roles.admin.edit.role.permissions.portlet.filter,\
 	com.liferay.roles.admin.group.type.contributor,\
 	com.liferay.roles.admin.panel.category.role.type.mapper,\
 	com.liferay.roles.admin.role.type.contributor,\

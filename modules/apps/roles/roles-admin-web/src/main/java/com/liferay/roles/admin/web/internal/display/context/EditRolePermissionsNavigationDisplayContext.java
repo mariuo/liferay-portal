@@ -49,6 +49,7 @@ import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.util.WebAppPool;
 import com.liferay.product.navigation.personal.menu.BasePersonalMenuEntry;
 import com.liferay.roles.admin.constants.RolesAdminWebKeys;
+import com.liferay.roles.admin.edit.role.permissions.portlet.filter.EditRolePermissionsPortletFilter;
 
 import jakarta.portlet.RenderResponse;
 
@@ -81,12 +82,16 @@ public class EditRolePermissionsNavigationDisplayContext {
 		_role = role;
 		_accountRoleGroupScope = accountRoleGroupScope;
 
+		_editRolePermissionsPortletFilters =
+			(Iterable<EditRolePermissionsPortletFilter>)
+				httpServletRequest.getAttribute(
+					RolesAdminWebKeys.EDIT_ROLE_PERMISSIONS_PORTLET_FILTERS);
+		_locale = httpServletRequest.getLocale();
 		_panelAppRegistry = (PanelAppRegistry)httpServletRequest.getAttribute(
 			ApplicationListWebKeys.PANEL_APP_REGISTRY);
 		_personalMenuEntryHelper =
 			(PersonalMenuEntryHelper)httpServletRequest.getAttribute(
 				ApplicationListWebKeys.PERSONAL_MENU_ENTRY_HELPER);
-		_locale = httpServletRequest.getLocale();
 		_servletContext = httpServletRequest.getServletContext();
 		_themeDisplay = (ThemeDisplay)httpServletRequest.getAttribute(
 			WebKeys.THEME_DISPLAY);
@@ -126,7 +131,8 @@ public class EditRolePermissionsNavigationDisplayContext {
 			String portletId = portlet.getPortletId();
 
 			if (Validator.isNull(portletId) ||
-				hiddenPortletIds.contains(portletId)) {
+				hiddenPortletIds.contains(portletId) ||
+				_isHiddenForRoleType(portletId)) {
 
 				continue;
 			}
@@ -201,7 +207,8 @@ public class EditRolePermissionsNavigationDisplayContext {
 					WorkflowConstants.STATUS_APPROVED)) {
 
 			if (!objectDefinition.isUnmodifiableSystemObject() &&
-				Validator.isNull(objectDefinition.getPanelCategoryKey())) {
+				Validator.isNull(objectDefinition.getPanelCategoryKey()) &&
+				!_isHiddenForRoleType(objectDefinition.getPortletId())) {
 
 				NavigationItem navigationItem = NavigationItem.create(
 					objectDefinition.getLabel(_locale),
@@ -250,7 +257,8 @@ public class EditRolePermissionsNavigationDisplayContext {
 				OmniadminControlPanelEntry.class.isAssignableFrom(
 					controlPanelEntry.getClass()) ||
 				ArrayUtil.contains(
-					excludedPanelAppKeys, panelApp.getPortletId())) {
+					excludedPanelAppKeys, panelApp.getPortletId()) ||
+				_isHiddenForRoleType(panelApp.getPortletId())) {
 
 				continue;
 			}
@@ -564,8 +572,26 @@ public class EditRolePermissionsNavigationDisplayContext {
 				usersAdminPortlet.getPortletId()));
 	}
 
+	private boolean _isHiddenForRoleType(String portletId) {
+		if (_editRolePermissionsPortletFilters == null) {
+			return false;
+		}
+
+		for (EditRolePermissionsPortletFilter editRolePermissionsPortletFilter :
+				_editRolePermissionsPortletFilters) {
+
+			if (editRolePermissionsPortletFilter.isHidden(portletId, _role)) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	private final Boolean _accountRoleGroupScope;
 	private String _backURL;
+	private final Iterable<EditRolePermissionsPortletFilter>
+		_editRolePermissionsPortletFilters;
 	private final HttpServletRequest _httpServletRequest;
 	private final Locale _locale;
 	private final PanelAppRegistry _panelAppRegistry;
