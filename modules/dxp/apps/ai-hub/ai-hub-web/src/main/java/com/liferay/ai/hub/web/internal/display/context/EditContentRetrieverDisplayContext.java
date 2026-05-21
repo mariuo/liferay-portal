@@ -5,6 +5,10 @@
 
 package com.liferay.ai.hub.web.internal.display.context;
 
+import com.liferay.ai.hub.web.internal.util.ActionUtil;
+import com.liferay.object.scope.ObjectScopeProviderRegistry;
+import com.liferay.object.service.ObjectDefinitionLocalService;
+import com.liferay.object.service.ObjectEntryService;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.Group;
@@ -25,10 +29,16 @@ public class EditContentRetrieverDisplayContext {
 
 	public EditContentRetrieverDisplayContext(
 		GroupLocalService groupLocalService,
-		HttpServletRequest httpServletRequest) {
+		HttpServletRequest httpServletRequest,
+		ObjectDefinitionLocalService objectDefinitionLocalService,
+		ObjectEntryService objectEntryService,
+		ObjectScopeProviderRegistry objectScopeProviderRegistry) {
 
 		_groupLocalService = groupLocalService;
 		_httpServletRequest = httpServletRequest;
+		_objectDefinitionLocalService = objectDefinitionLocalService;
+		_objectEntryService = objectEntryService;
+		_objectScopeProviderRegistry = objectScopeProviderRegistry;
 
 		_themeDisplay = (ThemeDisplay)httpServletRequest.getAttribute(
 			WebKeys.THEME_DISPLAY);
@@ -50,11 +60,21 @@ public class EditContentRetrieverDisplayContext {
 		).put(
 			"externalReferenceCode",
 			_httpServletRequest.getParameter("externalReferenceCode")
+		).put(
+			"readonly",
+			() -> ActionUtil.isReadOnly(
+				_httpServletRequest.getParameter("externalReferenceCode"),
+				_httpServletRequest, "L_AI_HUB_CONTENT_RETRIEVER",
+				_objectDefinitionLocalService, _objectEntryService,
+				_objectScopeProviderRegistry)
 		).build();
 	}
 
 	private final GroupLocalService _groupLocalService;
 	private final HttpServletRequest _httpServletRequest;
+	private final ObjectDefinitionLocalService _objectDefinitionLocalService;
+	private final ObjectEntryService _objectEntryService;
+	private final ObjectScopeProviderRegistry _objectScopeProviderRegistry;
 	private final ThemeDisplay _themeDisplay;
 
 }

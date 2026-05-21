@@ -7,6 +7,9 @@ package com.liferay.ai.hub.web.internal.fragment.renderer;
 
 import com.liferay.ai.hub.web.internal.display.context.EditContentRetrieverDisplayContext;
 import com.liferay.fragment.renderer.FragmentRenderer;
+import com.liferay.object.scope.ObjectScopeProviderRegistry;
+import com.liferay.object.service.ObjectDefinitionLocalService;
+import com.liferay.object.service.ObjectEntryService;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
@@ -50,7 +53,9 @@ public class EditContentRetrieverFragmentRenderer
 		HttpServletRequest httpServletRequest) {
 
 		return new EditContentRetrieverDisplayContext(
-			_groupLocalService, httpServletRequest);
+			_groupLocalService, httpServletRequest,
+			_objectDefinitionLocalService, _objectEntryService,
+			_objectScopeProviderRegistry);
 	}
 
 	@Override
@@ -60,5 +65,14 @@ public class EditContentRetrieverFragmentRenderer
 
 	@Reference
 	private GroupLocalService _groupLocalService;
+
+	@Reference
+	private ObjectDefinitionLocalService _objectDefinitionLocalService;
+
+	@Reference
+	private ObjectEntryService _objectEntryService;
+
+	@Reference
+	private ObjectScopeProviderRegistry _objectScopeProviderRegistry;
 
 }
