@@ -7,6 +7,10 @@ package com.liferay.ai.hub.web.internal.display.context;
 
 import com.liferay.account.model.AccountEntry;
 import com.liferay.ai.hub.util.AccountEntryUtil;
+import com.liferay.ai.hub.web.internal.util.ActionUtil;
+import com.liferay.object.scope.ObjectScopeProviderRegistry;
+import com.liferay.object.service.ObjectDefinitionLocalService;
+import com.liferay.object.service.ObjectEntryService;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.model.Company;
@@ -36,10 +40,17 @@ public class EditAgentDefinitionDisplayContext {
 
 	public EditAgentDefinitionDisplayContext(
 		GroupLocalService groupLocalService,
-		HttpServletRequest httpServletRequest, Portal portal) {
+		HttpServletRequest httpServletRequest,
+		ObjectDefinitionLocalService objectDefinitionLocalService,
+		ObjectEntryService objectEntryService,
+		ObjectScopeProviderRegistry objectScopeProviderRegistry,
+		Portal portal) {
 
 		_groupLocalService = groupLocalService;
 		_httpServletRequest = httpServletRequest;
+		_objectDefinitionLocalService = objectDefinitionLocalService;
+		_objectEntryService = objectEntryService;
+		_objectScopeProviderRegistry = objectScopeProviderRegistry;
 		_portal = portal;
 
 		_themeDisplay = (ThemeDisplay)httpServletRequest.getAttribute(
@@ -87,7 +98,11 @@ public class EditAgentDefinitionDisplayContext {
 					return true;
 				}
 
-				return false;
+				return ActionUtil.isReadOnly(
+					_httpServletRequest.getParameter("externalReferenceCode"),
+					_httpServletRequest, "L_AI_HUB_AGENT_DEFINITION",
+					_objectDefinitionLocalService, _objectEntryService,
+					_objectScopeProviderRegistry);
 			}
 		).put(
 			"workflowDefinitionURL",
@@ -143,6 +158,9 @@ public class EditAgentDefinitionDisplayContext {
 
 	private final GroupLocalService _groupLocalService;
 	private final HttpServletRequest _httpServletRequest;
+	private final ObjectDefinitionLocalService _objectDefinitionLocalService;
+	private final ObjectEntryService _objectEntryService;
+	private final ObjectScopeProviderRegistry _objectScopeProviderRegistry;
 	private final Portal _portal;
 	private final ThemeDisplay _themeDisplay;
 

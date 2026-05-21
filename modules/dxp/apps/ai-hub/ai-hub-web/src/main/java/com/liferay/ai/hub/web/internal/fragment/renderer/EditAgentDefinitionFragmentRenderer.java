@@ -7,6 +7,9 @@ package com.liferay.ai.hub.web.internal.fragment.renderer;
 
 import com.liferay.ai.hub.web.internal.display.context.EditAgentDefinitionDisplayContext;
 import com.liferay.fragment.renderer.FragmentRenderer;
+import com.liferay.object.scope.ObjectScopeProviderRegistry;
+import com.liferay.object.service.ObjectDefinitionLocalService;
+import com.liferay.object.service.ObjectEntryService;
 import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.util.Portal;
 
@@ -33,7 +36,9 @@ public class EditAgentDefinitionFragmentRenderer
 		HttpServletRequest httpServletRequest) {
 
 		return new EditAgentDefinitionDisplayContext(
-			_groupLocalService, httpServletRequest, _portal);
+			_groupLocalService, httpServletRequest,
+			_objectDefinitionLocalService, _objectEntryService,
+			_objectScopeProviderRegistry, _portal);
 	}
 
 	@Override
@@ -43,6 +48,15 @@ public class EditAgentDefinitionFragmentRenderer
 
 	@Reference
 	private GroupLocalService _groupLocalService;
+
+	@Reference
+	private ObjectDefinitionLocalService _objectDefinitionLocalService;
+
+	@Reference
+	private ObjectEntryService _objectEntryService;
+
+	@Reference
+	private ObjectScopeProviderRegistry _objectScopeProviderRegistry;
 
 	@Reference
 	private Portal _portal;
