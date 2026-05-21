@@ -8,7 +8,9 @@ package com.liferay.ai.hub.web.internal.fragment.renderer;
 import com.liferay.ai.hub.web.internal.display.context.EditChatbotDisplayContext;
 import com.liferay.fragment.renderer.FragmentRenderer;
 import com.liferay.object.field.attachment.AttachmentManager;
+import com.liferay.object.scope.ObjectScopeProviderRegistry;
 import com.liferay.object.service.ObjectDefinitionLocalService;
+import com.liferay.object.service.ObjectEntryService;
 import com.liferay.object.service.ObjectFieldLocalService;
 import com.liferay.portal.kernel.language.Language;
 
@@ -35,7 +37,8 @@ public class EditChatbotFragmentRenderer
 
 		return new EditChatbotDisplayContext(
 			_attachmentManager, httpServletRequest, _language,
-			_objectDefinitionLocalService, _objectFieldLocalService);
+			_objectDefinitionLocalService, _objectEntryService,
+			_objectFieldLocalService, _objectScopeProviderRegistry);
 	}
 
 	@Override
@@ -53,6 +56,12 @@ public class EditChatbotFragmentRenderer
 	private ObjectDefinitionLocalService _objectDefinitionLocalService;
 
 	@Reference
+	private ObjectEntryService _objectEntryService;
+
+	@Reference
 	private ObjectFieldLocalService _objectFieldLocalService;
+
+	@Reference
+	private ObjectScopeProviderRegistry _objectScopeProviderRegistry;
 
 }

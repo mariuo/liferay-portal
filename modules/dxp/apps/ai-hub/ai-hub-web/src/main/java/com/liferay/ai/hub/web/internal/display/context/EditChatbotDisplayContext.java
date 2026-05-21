@@ -13,7 +13,9 @@ import com.liferay.object.field.attachment.AttachmentManager;
 import com.liferay.object.field.setting.util.ObjectFieldSettingUtil;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectField;
+import com.liferay.object.scope.ObjectScopeProviderRegistry;
 import com.liferay.object.service.ObjectDefinitionLocalService;
+import com.liferay.object.service.ObjectEntryService;
 import com.liferay.object.service.ObjectFieldLocalService;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
@@ -33,13 +35,17 @@ public class EditChatbotDisplayContext {
 		AttachmentManager attachmentManager,
 		HttpServletRequest httpServletRequest, Language language,
 		ObjectDefinitionLocalService objectDefinitionLocalService,
-		ObjectFieldLocalService objectFieldLocalService) {
+		ObjectEntryService objectEntryService,
+		ObjectFieldLocalService objectFieldLocalService,
+		ObjectScopeProviderRegistry objectScopeProviderRegistry) {
 
 		_attachmentManager = attachmentManager;
 		_httpServletRequest = httpServletRequest;
 		_language = language;
 		_objectDefinitionLocalService = objectDefinitionLocalService;
+		_objectEntryService = objectEntryService;
 		_objectFieldLocalService = objectFieldLocalService;
+		_objectScopeProviderRegistry = objectScopeProviderRegistry;
 
 		_themeDisplay = (ThemeDisplay)httpServletRequest.getAttribute(
 			WebKeys.THEME_DISPLAY);
@@ -97,6 +103,13 @@ public class EditChatbotDisplayContext {
 			_httpServletRequest.getParameter("externalReferenceCode")
 		).put(
 			"portalURL", _themeDisplay.getPortalURL()
+		).put(
+			"readonly",
+			() -> ActionUtil.isReadOnly(
+				_httpServletRequest.getParameter("externalReferenceCode"),
+				_httpServletRequest, "L_AI_HUB_CHATBOT",
+				_objectDefinitionLocalService, _objectEntryService,
+				_objectScopeProviderRegistry)
 		).build();
 	}
 
@@ -118,7 +131,9 @@ public class EditChatbotDisplayContext {
 	private final HttpServletRequest _httpServletRequest;
 	private final Language _language;
 	private final ObjectDefinitionLocalService _objectDefinitionLocalService;
+	private final ObjectEntryService _objectEntryService;
 	private final ObjectFieldLocalService _objectFieldLocalService;
+	private final ObjectScopeProviderRegistry _objectScopeProviderRegistry;
 	private final ThemeDisplay _themeDisplay;
 
 }
