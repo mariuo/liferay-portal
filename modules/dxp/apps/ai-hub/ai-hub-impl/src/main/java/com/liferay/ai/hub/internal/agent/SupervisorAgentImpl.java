@@ -9,6 +9,8 @@ import com.liferay.ai.hub.agent.AgentContext;
 import com.liferay.ai.hub.agent.SupervisorAgent;
 import com.liferay.ai.hub.internal.memory.ChatMemoryProviderUtil;
 import com.liferay.ai.hub.internal.model.VertexAiGeminiUtil;
+import com.liferay.ai.hub.internal.request.ConcurrentRequestLimitException;
+import com.liferay.ai.hub.internal.request.RequestUtil;
 import com.liferay.ai.hub.quota.QuotaManager;
 import com.liferay.ai.hub.rest.resource.v1_0.util.SseUtil;
 import com.liferay.object.rest.dto.v1_0.ObjectEntry;
@@ -19,6 +21,7 @@ import com.liferay.petra.executor.PortalExecutorManager;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.language.Language;
+import com.liferay.portal.kernel.lock.Lock;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.security.auth.CompanyInheritableThreadLocalCallable;
@@ -27,6 +30,7 @@ import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.kernel.util.StringUtil;
+import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.workflow.WorkflowInstanceManager;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterContext;
@@ -187,10 +191,14 @@ public class SupervisorAgentImpl implements SupervisorAgent {
 			agentContext.getDTOConverterContext();
 
 		if (exception instanceof UnsupportedOperationException) {
+			String languageKey = "you-have-exceeded-your-token-quota";
+
+			if (exception instanceof ConcurrentRequestLimitException) {
+				languageKey = "you-have-exceeded-your-concurrent-request-limit";
+			}
+
 			SseUtil.send(
-				_language.get(
-					dtoConverterContext.getLocale(),
-					"you-have-exceeded-your-token-quota"),
+				_language.get(dtoConverterContext.getLocale(), languageKey),
 				"Chat Message Sent", null, agentContext.getSseEventSinkKey());
 
 			return;
@@ -224,41 +232,56 @@ public class SupervisorAgentImpl implements SupervisorAgent {
 			VertexAiGeminiChatModel vertexAiGeminiChatModel)
 		throws PortalException {
 
-		String message = MapUtil.getString(agentContext.getInput(), "message");
+		Lock lock = null;
 
-		_quotaManager.checkUsage(
-			agentContext.getCompanyId(), agentContext.getUserId());
+		try {
+			lock = RequestUtil.acquire(
+				agentContext.getCompanyId(), 5 * Time.MINUTE,
+				agentContext.getUserId());
 
-		dev.langchain4j.agentic.supervisor.SupervisorAgent supervisorAgent =
-			AgenticServices.supervisorBuilder(
-			).chatMemoryProvider(
-				memoryId -> ChatMemoryProviderUtil.provide(
-					agentContext.getSseEventSinkKey())
-			).chatModel(
-				vertexAiGeminiChatModel
-			).contextGenerationStrategy(
-				SupervisorContextStrategy.CHAT_MEMORY_AND_SUMMARIZATION
-			).maxAgentsInvocations(
-				5
-			).subAgents(
-				(Object[])internalAgents
-			).responseStrategy(
-				SupervisorResponseStrategy.SCORED
-			).build();
+			String message = MapUtil.getString(
+				agentContext.getInput(), "message");
 
-		String data = supervisorAgent.invoke(message);
+			_quotaManager.checkUsage(
+				agentContext.getCompanyId(), agentContext.getUserId());
 
-		if (Validator.isBlank(data)) {
-			DTOConverterContext dtoConverterContext =
-				agentContext.getDTOConverterContext();
+			dev.langchain4j.agentic.supervisor.SupervisorAgent supervisorAgent =
+				AgenticServices.supervisorBuilder(
+				).chatMemoryProvider(
+					memoryId -> ChatMemoryProviderUtil.provide(
+						agentContext.getSseEventSinkKey())
+				).chatModel(
+					vertexAiGeminiChatModel
+				).contextGenerationStrategy(
+					SupervisorContextStrategy.CHAT_MEMORY_AND_SUMMARIZATION
+				).maxAgentsInvocations(
+					5
+				).subAgents(
+					(Object[])internalAgents
+				).responseStrategy(
+					SupervisorResponseStrategy.SCORED
+				).build();
 
-			data = _language.get(
-				dtoConverterContext.getLocale(),
-				"i-cannot-fulfill-this-request");
+			String data = supervisorAgent.invoke(message);
+
+			if (Validator.isBlank(data)) {
+				DTOConverterContext dtoConverterContext =
+					agentContext.getDTOConverterContext();
+
+				data = _language.get(
+					dtoConverterContext.getLocale(),
+					"i-cannot-fulfill-this-request");
+			}
+
+			SseUtil.send(
+				data, "Chat Message Sent", null,
+				agentContext.getSseEventSinkKey());
 		}
-
-		SseUtil.send(
-			data, "Chat Message Sent", null, agentContext.getSseEventSinkKey());
+		finally {
+			if (lock != null) {
+				RequestUtil.release(lock);
+			}
+		}
 	}
 
 	private static final Log _log = LogFactoryUtil.getLog(
