@@ -896,6 +896,8 @@ public class ActionUtil {
 
 		List<DropdownItem> dropdownItems = new ArrayList<>(
 			List.of(
+				getGenerateImageDropdownItem(
+					httpServletRequest, objectEntryFolderExternalReferenceCode),
 				getCMSBasicDocumentDropdownItem(
 					httpServletRequest, objectEntryFolderExternalReferenceCode),
 				getUploadMultipleFilesDropdownItem(
@@ -918,6 +920,22 @@ public class ActionUtil {
 		dropdownItems.addAll(filesCustomDropdownItems);
 
 		return dropdownItems;
+	}
+
+	public static DropdownItem getGenerateImageDropdownItem(
+		HttpServletRequest httpServletRequest,
+		String objectEntryFolderExternalReferenceCode) {
+
+		return DropdownItemBuilder.putData(
+			"action", "generateImage"
+		).putData(
+			"objectEntryFolderExternalReferenceCode",
+			objectEntryFolderExternalReferenceCode
+		).setIcon(
+			"stars"
+		).setLabel(
+			LanguageUtil.get(httpServletRequest, "generate-with-ai")
+		).build();
 	}
 
 	public static String getRecycleBinURL(ThemeDisplay themeDisplay) {

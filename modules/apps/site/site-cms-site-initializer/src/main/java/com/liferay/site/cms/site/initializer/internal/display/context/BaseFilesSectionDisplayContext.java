@@ -12,6 +12,8 @@ import com.liferay.frontend.taglib.clay.servlet.taglib.util.DropdownItem;
 import com.liferay.object.constants.ObjectEntryFolderConstants;
 import com.liferay.object.constants.ObjectFolderConstants;
 import com.liferay.object.service.ObjectDefinitionService;
+import com.liferay.portal.kernel.json.JSONArray;
+import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.service.GroupLocalService;
@@ -57,6 +59,21 @@ public abstract class BaseFilesSectionDisplayContext
 			httpServletRequest, null);
 	}
 
+	public long getDefaultSpaceGroupId() {
+		JSONArray jsonArray =
+			SectionDisplayContextUtil.getDepotEntriesJSONArray(
+				httpServletRequest,
+				getRootObjectEntryFolderExternalReferenceCode());
+
+		if (jsonArray.length() == 0) {
+			return themeDisplay.getScopeGroupId();
+		}
+
+		JSONObject jsonObject = jsonArray.getJSONObject(0);
+
+		return jsonObject.getLong("groupId");
+	}
+
 	@Override
 	public Map<String, Object> getEmptyState() {
 		return HashMapBuilder.<String, Object>put(
@@ -73,6 +90,12 @@ public abstract class BaseFilesSectionDisplayContext
 	public List<FDSActionDropdownItem> getFDSActionDropdownItems() {
 		return SectionDisplayContextUtil.getFilesFDSActionDropdownItems(
 			httpServletRequest);
+	}
+
+	public JSONArray getSpacesJSONArray() {
+		return SectionDisplayContextUtil.getDepotEntriesJSONArray(
+			httpServletRequest,
+			getRootObjectEntryFolderExternalReferenceCode());
 	}
 
 	protected abstract String getEmptyStateDescriptionKey();

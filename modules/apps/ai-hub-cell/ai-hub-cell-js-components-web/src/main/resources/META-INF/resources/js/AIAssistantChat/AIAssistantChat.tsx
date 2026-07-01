@@ -48,19 +48,23 @@ type AIState = 'focused' | 'result' | 'result-readonly' | 'working';
 
 interface AIAssistantChatProps {
 	aiState?: AIState;
+	autoStartGenerateImageFlow?: boolean;
 	embedded?: boolean;
 	getContext: () => ChatContext;
 	initialMessage?: string;
 	instructionDefinitionScope: string;
+	onSaveImage?: (imageDataURL: string) => void;
 	quickActions?: string[];
 }
 
 const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 	aiState,
+	autoStartGenerateImageFlow,
 	embedded = false,
 	getContext,
 	initialMessage,
 	instructionDefinitionScope,
+	onSaveImage,
 	quickActions,
 }) => {
 	const [active, setActive] = useState<boolean>(false);
@@ -93,6 +97,8 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 	const eventSourceRef = useRef<EventSource | null>(null);
 	const eventSourceReference = useRef<string | null>(null);
 	const getContextRef = useRef<() => ChatContext>(getContext);
+	const imageFlowPromptRef = useRef<string>('');
+	const imageFlowStepRef = useRef<'idle' | 'prompt' | 'generating'>('idle');
 	const initialMessageRef = useRef<string | undefined>(initialMessage);
 	const initialMessageSentRef = useRef<boolean>(false);
 	const instructionDefinitionScopeRef = useRef<string>(
@@ -107,35 +113,98 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 		instructionDefinitionScopeRef.current = instructionDefinitionScope;
 	}, [getContext, instructionDefinitionScope]);
 
-	const sendMessage = useCallback((text: string) => {
-		if (!text.trim()) {
-			return;
-		}
+	const scrollToBottom = useCallback(() => {
+		setTimeout(() => {
+			messagesEndRef.current?.scrollIntoView({behavior: 'smooth'});
+		}, 0);
+	}, []);
 
-		setMessages((previousMessages) => {
-			setTimeout(() => {
-				messagesEndRef.current?.scrollIntoView({behavior: 'smooth'});
-			}, 0);
-
-			return [...previousMessages, {sender: 'user', text}];
-		});
-
-		setMessage('');
+	const postGenerateImage = useCallback(() => {
+		imageFlowStepRef.current = 'generating';
 
 		if (eventSourceReference.current) {
 			setIsGenerating(true);
 
-			const getCurrentContext = getContextRef.current;
-
 			postChatByExternalReferenceCodeMessage({
-				chatContext: getCurrentContext(),
+				chatContext: getContextRef.current(),
 				eventSourceReference: eventSourceReference.current,
 				instructionDefinitionScope:
 					instructionDefinitionScopeRef.current,
-				message: text,
+				message: `Generate an image of ${imageFlowPromptRef.current}.`,
 			}).catch(() => setIsGenerating(false));
 		}
 	}, []);
+
+	const cancelImage = useCallback((index: number) => {
+		imageFlowStepRef.current = 'idle';
+
+		setMessages((previousMessages) =>
+			previousMessages.filter(
+				(__, messageIndex) => messageIndex !== index
+			)
+		);
+	}, []);
+
+	const startImageFlow = useCallback(() => {
+		imageFlowStepRef.current = 'prompt';
+
+		setMessages((previousMessages) => {
+			scrollToBottom();
+
+			return [
+				...previousMessages,
+				{
+					sender: 'assistant',
+					text: 'Sure, describe the image you want me to generate.',
+				},
+			];
+		});
+	}, [scrollToBottom]);
+
+	const sendMessage = useCallback(
+		(text: string) => {
+			if (!text.trim()) {
+				return;
+			}
+
+			if (imageFlowStepRef.current === 'prompt') {
+				imageFlowPromptRef.current = text;
+
+				setMessages((previousMessages) => {
+					scrollToBottom();
+
+					return [...previousMessages, {sender: 'user', text}];
+				});
+
+				setMessage('');
+
+				postGenerateImage();
+
+				return;
+			}
+
+			setMessages((previousMessages) => {
+				scrollToBottom();
+
+				return [...previousMessages, {sender: 'user', text}];
+			});
+
+			setMessage('');
+
+			if (eventSourceReference.current) {
+				setIsGenerating(true);
+
+				postChatByExternalReferenceCodeMessage({
+					chatContext: getContextRef.current(),
+					eventSourceReference: eventSourceReference.current,
+					instructionDefinitionScope:
+						instructionDefinitionScopeRef.current,
+					message: text,
+				}).catch(() => setIsGenerating(false));
+			}
+		},
+		[postGenerateImage, scrollToBottom]
+	);
 
 	function onSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -213,6 +282,8 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 					try {
 						const dataJSON = JSON.parse(event.data);
 
+						const images = dataJSON['images'] ?? [];
+
 						setMessages((previousMessages) => {
 							setTimeout(() => {
 								messagesEndRef.current?.scrollIntoView({
@@ -228,7 +299,9 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 											'agentDefinitionExternalReferenceCodes'
 										] ?? [],
 									sender: 'assistant',
-									text: dataJSON['data'],
+									text: images.length
+										? images[0]
+										: dataJSON['data'],
 								},
 							];
 						});
@@ -241,6 +314,8 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 							{error: true, sender: 'assistant', text: ''},
 						]);
 					}
+
+					imageFlowStepRef.current = 'idle';
 
 					setIsGenerating(false);
 				}
@@ -341,6 +416,12 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 		};
 	}, []);
 
+	useEffect(() => {
+		if (autoStartGenerateImageFlow) {
+			startImageFlow();
+		}
+	}, [autoStartGenerateImageFlow, startImageFlow]);
+
 	const chatSurface = (
 		<>
 			<div className="ai-assistant-chat__messages-container flex-grow-1 overflow-auto px-3">
@@ -377,6 +458,8 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 							feedbackGiven={Boolean(feedbackGiven[index])}
 							key={index}
 							message={item.text}
+							onCancelImage={() => cancelImage(index)}
+							onRegenerateImage={postGenerateImage}
 							onReport={
 								!item.error
 									? () =>
@@ -386,6 +469,11 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 													[],
 												index,
 											})
+									: undefined
+							}
+							onSaveImage={
+								onSaveImage
+									? () => onSaveImage(item.text)
 									: undefined
 							}
 							onThumbsUp={

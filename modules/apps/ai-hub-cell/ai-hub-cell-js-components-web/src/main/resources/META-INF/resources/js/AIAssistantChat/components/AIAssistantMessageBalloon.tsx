@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
+import ClayButton, {ClayButtonWithIcon} from '@clayui/button';
 import ClayIcon from '@clayui/icon';
 import React from 'react';
 
@@ -15,7 +16,10 @@ interface AssistantMessageBalloonProps {
 	error: boolean;
 	feedbackGiven?: boolean;
 	message: string;
+	onCancelImage?: () => void;
+	onRegenerateImage?: () => void;
 	onReport?: () => void;
+	onSaveImage?: () => void;
 	onThumbsUp?: () => void;
 }
 
@@ -23,9 +27,14 @@ const AssistantMessageBalloon: React.FC<AssistantMessageBalloonProps> = ({
 	error,
 	feedbackGiven,
 	message,
+	onCancelImage,
+	onRegenerateImage,
 	onReport,
+	onSaveImage,
 	onThumbsUp,
 }) => {
+	const isImage = !error && message.startsWith('data:image/');
+
 	return (
 		<div
 			className={`d-flex flex-column mb-2 rounded ${error ? 'ai-assistant-chat__ai-assistant-error-message-balloon' : 'ai-assistant-chat__ai-assistant-message-balloon'}`}
@@ -45,6 +54,12 @@ const AssistantMessageBalloon: React.FC<AssistantMessageBalloonProps> = ({
 						{message ||
 							Liferay.Language.get('generating-content-failed')}
 					</span>
+				) : isImage ? (
+					<img
+						alt="Generated image"
+						className="ai-assistant-chat__generated-image img-fluid m-2 rounded"
+						src={message}
+					/>
 				) : (
 					<div
 						className="m-2"
@@ -55,7 +70,47 @@ const AssistantMessageBalloon: React.FC<AssistantMessageBalloonProps> = ({
 				)}
 			</div>
 
-			{onReport && !error && (
+			{isImage && (onSaveImage || onRegenerateImage || onCancelImage) && (
+				<div className="align-items-center d-flex justify-content-end mb-2 mr-2">
+					{onCancelImage && (
+						<ClayButton
+							borderless
+							displayType="secondary"
+							onClick={onCancelImage}
+							size="sm"
+						>
+							{Liferay.Language.get('cancel')}
+						</ClayButton>
+					)}
+
+					{onRegenerateImage && (
+						<ClayButtonWithIcon
+							aria-label="Regenerate"
+							borderless
+							className="ml-1"
+							displayType="secondary"
+							onClick={onRegenerateImage}
+							size="sm"
+							spritemap={Liferay.Icons.spritemap}
+							symbol="reload"
+							title="Regenerate"
+						/>
+					)}
+
+					{onSaveImage && (
+						<ClayButton
+							className="ml-1"
+							displayType="primary"
+							onClick={onSaveImage}
+							size="sm"
+						>
+							{Liferay.Language.get('save')}
+						</ClayButton>
+					)}
+				</div>
+			)}
+
+			{!isImage && onReport && !error && (
 				<FeedbackActionsRow
 					className="mb-1 ml-2"
 					feedbackGiven={feedbackGiven}

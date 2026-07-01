@@ -49,6 +49,7 @@ export {default as CategorizationToolbar} from './main_view/categorization/Categ
 export {default as EditCategoryPage} from './main_view/categorization/categories/EditCategoryPage';
 export {default as ViewTags} from './main_view/categorization/tags/ViewTags';
 export {default as EditVocabulary} from './main_view/categorization/vocabularies/EditVocabulary';
+export {default as FilesAIAssistant} from './main_view/components/FilesAIAssistant';
 export {default as Dashboards} from './main_view/dashboard/Dashboards';
 
 export {default as EditFolder} from './main_view/folders/EditFolder';

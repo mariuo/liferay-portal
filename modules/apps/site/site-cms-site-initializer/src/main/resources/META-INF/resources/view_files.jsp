@@ -12,10 +12,23 @@ ViewFilesSectionDisplayContext viewFilesSectionDisplayContext = (ViewFilesSectio
 %>
 
 <div>
-	<div>
+	<div class="align-items-center d-flex justify-content-between">
 		<react:component
 			module="{Breadcrumb} from site-cms-site-initializer"
 			props="<%= viewFilesSectionDisplayContext.getBreadcrumbProps() %>"
+		/>
+
+		<react:component
+			module="{FilesAIAssistant} from site-cms-site-initializer"
+			props='<%=
+				HashMapBuilder.<String, Object>put(
+					"filesDataSetId", CMSSiteInitializerFDSNames.FILES_SECTION
+				).put(
+					"spaceGroupId", viewFilesSectionDisplayContext.getDefaultSpaceGroupId()
+				).put(
+					"spaces", viewFilesSectionDisplayContext.getSpacesJSONArray()
+				).build()
+			%>'
 		/>
 	</div>
 

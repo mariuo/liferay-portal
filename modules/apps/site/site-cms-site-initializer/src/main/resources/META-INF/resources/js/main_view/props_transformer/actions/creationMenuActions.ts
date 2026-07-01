@@ -5,6 +5,7 @@
 
 import createAssetAction from './createAssetAction';
 import createFolderAction from './createFolderAction';
+import generateImageAction from './generateImageAction';
 import importTranslationAction from './importTranslationAction';
 import multipleFilesUploadAction from './multipleFilesUploadAction';
 import selectAssetsAction from './selectAssetsAction';
@@ -12,6 +13,7 @@ import selectAssetsAction from './selectAssetsAction';
 const ACTIONS = {
 	createAsset: createAssetAction,
 	createFolder: createFolderAction,
+	generateImage: generateImageAction,
 	importTranslation: importTranslationAction,
 	selectAssets: selectAssetsAction,
 	uploadMultipleFiles: multipleFilesUploadAction,
