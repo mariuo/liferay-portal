@@ -160,4 +160,29 @@ describe('AIAssistantChat', () => {
 			})
 		).not.toBeInTheDocument();
 	});
+
+	it('toggles the expanded state when the maximize button is clicked', async () => {
+		await renderAndOpen();
+
+		const maximizeButton = screen.getByRole('button', {name: 'maximize'});
+
+		expect(maximizeButton).toHaveAttribute('aria-expanded', 'false');
+
+		await act(async () => {
+			fireEvent.click(maximizeButton);
+		});
+
+		const minimizeButton = screen.getByRole('button', {name: 'minimize'});
+
+		expect(minimizeButton).toHaveAttribute('aria-expanded', 'true');
+
+		await act(async () => {
+			fireEvent.click(minimizeButton);
+		});
+
+		expect(screen.getByRole('button', {name: 'maximize'})).toHaveAttribute(
+			'aria-expanded',
+			'false'
+		);
+	});
 });

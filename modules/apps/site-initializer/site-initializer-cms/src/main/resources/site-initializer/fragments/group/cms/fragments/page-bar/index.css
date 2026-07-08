@@ -1,4 +1,5 @@
 body:has(.cms-control-menu) {
+	--ai-assistant-panel-top-offset: var(--top-bar-height);
 	--top-bar-height: 3.5rem;
 }
 

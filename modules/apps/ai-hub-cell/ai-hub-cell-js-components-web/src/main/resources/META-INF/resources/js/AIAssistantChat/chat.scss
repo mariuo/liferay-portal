@@ -39,6 +39,29 @@ html#{$cadmin-selector} {
 }
 
 html#{$cadmin-selector} .cadmin {
+	&.ai-assistant-chat__panel {
+		transition:
+			height 0.3s ease,
+			width 0.3s ease;
+
+		&[aria-expanded='true'] {
+			--ai-assistant-panel-top: calc(
+				var(--control-menu-container-height, 0px) +
+					var(--ai-assistant-panel-top-offset, 0px)
+			);
+
+			border-radius: 0;
+			height: calc(100vh - var(--ai-assistant-panel-top)) !important;
+			left: auto !important;
+			margin: 0 !important;
+			position: fixed !important;
+			right: 0 !important;
+			top: var(--ai-assistant-panel-top) !important;
+			transform: none !important;
+			width: 480px !important;
+		}
+	}
+
 	.ai-assistant-chat__embedded {
 		height: 100%;
 
@@ -61,7 +84,8 @@ html#{$cadmin-selector} .cadmin {
 			color: $cadmin-gray-900;
 		}
 
-		.ai-assistant-chat__dropdown-close-button {
+		.ai-assistant-chat__dropdown-close-button,
+		.ai-assistant-chat__dropdown-minmax-button {
 			color: $cadmin-gray-600;
 			height: 12;
 			width: 12;
