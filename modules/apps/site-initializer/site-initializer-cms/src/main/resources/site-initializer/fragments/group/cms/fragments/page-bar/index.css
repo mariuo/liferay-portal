@@ -1,3 +1,7 @@
+body:has(.cms-control-menu) {
+	--top-bar-height: 3.5rem;
+}
+
 .cms-title {
 	font-family:
 		'Source Sans 3',
