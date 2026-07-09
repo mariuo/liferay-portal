@@ -5,85 +5,53 @@
 
 import {fetch} from 'frontend-js-web';
 
+import {SavedDocument} from '../utils/setFileUploadFieldValue';
+
 const AI_GENERATED_KEYWORD = 'AI-generated';
 
-const HEADLESS_DELIVERY_ENDPOINT = '/o/headless-delivery/v1.0';
+const CMS_BASIC_DOCUMENTS_ENDPOINT = '/o/cms/basic-documents/scopes';
 
-interface SaveDestination {
-	folderId?: number | string;
-	siteId?: number | string;
+const DEFAULT_FOLDER_EXTERNAL_REFERENCE_CODE = 'L_FILES';
+
+export interface SaveDestination {
+	groupId: number | string;
+	objectEntryFolderExternalReferenceCode?: string;
 }
 
-function resolveContainerURL(
-	{folderId, siteId}: SaveDestination,
-	resource: string
-) {
-	if (folderId && Number(folderId) > 0) {
-		return `${HEADLESS_DELIVERY_ENDPOINT}/document-folders/${folderId}/${resource}`;
-	}
-
-	return `${HEADLESS_DELIVERY_ENDPOINT}/sites/${siteId ?? Liferay.ThemeDisplay.getSiteGroupId()}/${resource}`;
+function toBase64(dataURI: string) {
+	return dataURI.split(',')[1] ?? dataURI;
 }
 
-async function createGeneratedImagesFolder({
-	folderId,
-	siteId,
-}: SaveDestination) {
-	const url = resolveContainerURL({folderId, siteId}, 'document-folders');
-
-	const response = await fetch(url, {
-		body: JSON.stringify({
-			name: `${Liferay.Language.get(
-				'images-generated-by-ai'
-			)} ${crypto.randomUUID()}`,
-		}),
-		headers: new Headers({'Content-Type': 'application/json'}),
-		method: 'POST',
-	});
-
-	if (!response.ok) {
-		throw new Error(`Unable to create folder: ${response.statusText}`);
-	}
-
-	const folder = await response.json();
-
-	return folder.id;
-}
-
-export async function saveGeneratedImages(
+export function saveGeneratedImages(
 	images: string[],
-	{folderId, siteId}: SaveDestination
-) {
-	const targetFolderId =
-		images.length > 1
-			? await createGeneratedImagesFolder({folderId, siteId})
-			: folderId;
-
-	const uploadURL = resolveContainerURL(
-		{folderId: targetFolderId, siteId},
-		'documents'
-	);
-
+	{
+		groupId,
+		objectEntryFolderExternalReferenceCode = DEFAULT_FOLDER_EXTERNAL_REFERENCE_CODE,
+	}: SaveDestination
+): Promise<SavedDocument[]> {
 	return Promise.all(
 		images.map(async (image) => {
-			const blob = await (await fetch(image)).blob();
+			const name = `AI-image-${crypto.randomUUID()}.png`;
 
-			const formData = new FormData();
-
-			formData.append(
-				'file',
-				blob,
-				`AI-image-${crypto.randomUUID()}.png`
+			const response = await fetch(
+				`${CMS_BASIC_DOCUMENTS_ENDPOINT}/${groupId}`,
+				{
+					body: JSON.stringify({
+						file: {
+							fileBase64: toBase64(image),
+							name,
+						},
+						keywords: [AI_GENERATED_KEYWORD],
+						objectEntryFolderExternalReferenceCode,
+						title: name,
+					}),
+					headers: new Headers({
+						'Accept': 'application/json',
+						'Content-Type': 'application/json',
+					}),
+					method: 'POST',
+				}
 			);
-			formData.append(
-				'document',
-				JSON.stringify({keywords: [AI_GENERATED_KEYWORD]})
-			);
-
-			const response = await fetch(uploadURL, {
-				body: formData,
-				method: 'POST',
-			});
 
 			if (!response.ok) {
 				throw new Error(
