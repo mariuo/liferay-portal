@@ -52,7 +52,7 @@ type AIState = 'focused' | 'result' | 'result-readonly' | 'working';
 interface AIAssistantChatProps {
 	aiState?: AIState;
 	embedded?: boolean;
-	getContext?: () => ChatContext;
+	getContext?: ChatContext | (() => ChatContext);
 	hideTriggerLabel?: boolean;
 	initialMessage?: string;
 	instructionDefinitionScope: string;
@@ -104,7 +104,9 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 	};
 	const eventSourceRef = useRef<EventSource | null>(null);
 	const eventSourceReference = useRef<string | null>(null);
-	const getContextRef = useRef<() => ChatContext>(getContext);
+	const getContextRef = useRef<ChatContext | (() => ChatContext)>(getContext);
+	const openContextRef = useRef<ChatContext>({});
+	const mergedContextRef = useRef<() => ChatContext>(() => ({}));
 	const initialMessageRef = useRef<string | undefined>(initialMessage);
 	const initialMessageSentRef = useRef<boolean>(false);
 	const instructionDefinitionScopeRef = useRef<string>(
@@ -117,6 +119,34 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 	useEffect(() => {
 		getContextRef.current = getContext;
 		instructionDefinitionScopeRef.current = instructionDefinitionScope;
+
+		mergedContextRef.current = () => {
+			const fieldElement = triggerRef.current?.closest?.(
+				'[data-ai-assistant-field-id]'
+			) as HTMLElement | null;
+
+			const fieldContext: ChatContext = {};
+
+			if (fieldElement) {
+				fieldContext.fieldId = fieldElement.dataset.aiAssistantFieldId;
+
+				if (fieldElement.dataset.aiAssistantGroupId) {
+					fieldContext.groupId =
+						fieldElement.dataset.aiAssistantGroupId;
+				}
+			}
+
+			const context =
+				typeof getContextRef.current === 'function'
+					? getContextRef.current()
+					: getContextRef.current;
+
+			return {
+				...context,
+				...fieldContext,
+				...openContextRef.current,
+			};
+		};
 	}, [getContext, instructionDefinitionScope]);
 
 	const sendMessage = useCallback((text: string) => {
@@ -137,10 +167,8 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 		if (eventSourceReference.current) {
 			setIsGenerating(true);
 
-			const getCurrentContext = getContextRef.current;
-
 			postChatByExternalReferenceCodeMessage({
-				chatContext: getCurrentContext(),
+				chatContext: mergedContextRef.current(),
 				eventSourceReference: eventSourceReference.current,
 				instructionDefinitionScope:
 					instructionDefinitionScopeRef.current,
@@ -355,8 +383,18 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 	}, []);
 
 	useEffect(() => {
-		const handleOpen = (payload: {message?: string}) => {
+		const handleOpen = (payload: {
+			context?: ChatContext;
+			message?: string;
+		}) => {
 			setActive(true);
+
+			if (payload?.context) {
+				openContextRef.current = {
+					...openContextRef.current,
+					...payload.context,
+				};
+			}
 
 			if (payload?.message) {
 				sendMessage(payload.message);
@@ -401,25 +439,26 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 					}
 
 					if (item.images?.length) {
-						const context = getContextRef.current();
+						const context = mergedContextRef.current();
 
 						return (
 							<ImageMessageBalloon
-								folderId={
-									context.folderId as
-										| number
-										| string
-										| undefined
-								}
 								images={item.images}
 								key={index}
 								message={item.text}
-								siteId={
-									context.siteId as
+								saveProps={{
+									fieldId: context.fieldId as
+										| string
+										| undefined,
+									groupId: context.groupId as
 										| number
 										| string
-										| undefined
-								}
+										| undefined,
+									objectEntryFolderExternalReferenceCode:
+										context.objectEntryFolderExternalReferenceCode as
+											| string
+											| undefined,
+								}}
 							/>
 						);
 					}
