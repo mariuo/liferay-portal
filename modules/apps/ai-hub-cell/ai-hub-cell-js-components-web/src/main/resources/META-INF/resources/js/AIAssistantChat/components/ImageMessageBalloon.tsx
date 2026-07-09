@@ -13,8 +13,8 @@ import React, {useState} from 'react';
 import {saveGeneratedImages} from '../services/saveGeneratedImages';
 
 import '../chat.scss';
+import injectImageIntoFileUploadField from '../utils/injectImageIntoFileUploadField';
 import renderAIAssistantMessageMarkdown from '../utils/renderAIAssistantMessageMarkdown';
-import setFileUploadFieldValue from '../utils/setFileUploadFieldValue';
 import SpaceSelectionModalContent from './SpaceSelectionModalContent';
 
 export interface SaveProps {
@@ -70,18 +70,10 @@ const ImageMessageBalloon: React.FC<ImageMessageBalloonProps> = ({
 		setSaving(true);
 
 		try {
-			const imagesToSave = fieldId
-				? selectedImages.slice(0, 1)
-				: selectedImages;
-
-			const documents = await saveGeneratedImages(imagesToSave, {
+			await saveGeneratedImages(selectedImages, {
 				groupId: targetGroupId,
 				objectEntryFolderExternalReferenceCode,
 			});
-
-			if (fieldId && documents[0]) {
-				setFileUploadFieldValue(fieldId, documents[0]);
-			}
 		}
 		finally {
 			setSaving(false);
@@ -93,8 +85,24 @@ const ImageMessageBalloon: React.FC<ImageMessageBalloonProps> = ({
 			return;
 		}
 
-		if (groupId) {
-			saveToGroup(groupId);
+		// When the chat is opened from a file-upload field (for example, the
+		// attachment of a new basic document), the generated image is injected
+		// into that field as a pending file instead of being persisted. It is
+		// stored only when the content is published.
+
+		if (fieldId) {
+			injectImageIntoFileUploadField(fieldId, selectedImages[0]);
+
+			return;
+		}
+
+		// A positive group id means the chat was opened within a single space,
+		// so the images are saved straight to it. Otherwise the space selection
+		// modal resolves the target: it saves silently when only one space
+		// exists and prompts the user when there are several.
+
+		if (Number(groupId) > 0) {
+			saveToGroup(groupId as number | string);
 
 			return;
 		}

@@ -5,8 +5,6 @@
 
 import {fetch} from 'frontend-js-web';
 
-import {SavedDocument} from '../utils/setFileUploadFieldValue';
-
 const AI_GENERATED_KEYWORD = 'AI-generated';
 
 const CMS_BASIC_DOCUMENTS_ENDPOINT = '/o/cms/basic-documents/scopes';
@@ -16,6 +14,11 @@ const DEFAULT_FOLDER_EXTERNAL_REFERENCE_CODE = 'L_FILES';
 export interface SaveDestination {
 	groupId: number | string;
 	objectEntryFolderExternalReferenceCode?: string;
+}
+
+export interface SavedDocument {
+	id: number;
+	title: string;
 }
 
 function toBase64(dataURI: string) {

@@ -121,9 +121,12 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 		instructionDefinitionScopeRef.current = instructionDefinitionScope;
 
 		mergedContextRef.current = () => {
-			const fieldElement = triggerRef.current?.closest?.(
+			const fieldElement = (triggerRef.current?.closest?.(
 				'[data-ai-assistant-field-id]'
-			) as HTMLElement | null;
+			) ??
+				document.querySelector(
+					'[data-ai-assistant-field-id]'
+				)) as HTMLElement | null;
 
 			const fieldContext: ChatContext = {};
 
