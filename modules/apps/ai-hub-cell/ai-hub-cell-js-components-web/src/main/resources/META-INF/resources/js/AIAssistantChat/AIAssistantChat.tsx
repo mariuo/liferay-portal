@@ -354,6 +354,22 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 		};
 	}, []);
 
+	useEffect(() => {
+		const handleOpen = (payload: {message?: string}) => {
+			setActive(true);
+
+			if (payload?.message) {
+				sendMessage(payload.message);
+			}
+		};
+
+		Liferay.on('openAIAssistantChat', handleOpen);
+
+		return () => {
+			Liferay.detach('openAIAssistantChat', handleOpen);
+		};
+	}, [sendMessage]);
+
 	const chatSurface = (
 		<>
 			<div className="ai-assistant-chat__messages-container flex-grow-1 overflow-auto px-3">
