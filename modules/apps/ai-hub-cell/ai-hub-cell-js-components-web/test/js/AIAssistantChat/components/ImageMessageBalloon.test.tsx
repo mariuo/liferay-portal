@@ -22,10 +22,17 @@ const IMAGE_TWO = 'data:image/png;base64,two';
 
 function response() {
 	return {
-		blob: () => Promise.resolve(new Blob(['image'])),
-		json: () => Promise.resolve({id: 1}),
+		json: () => Promise.resolve({id: 1, title: 'AI-image.png'}),
 		ok: true,
 	};
+}
+
+function lastPostBody() {
+	const postCall = mockFetch.mock.calls.find(
+		([, init]) => (init as RequestInit)?.method === 'POST'
+	);
+
+	return JSON.parse((postCall?.[1] as RequestInit).body as string);
 }
 
 describe('ImageMessageBalloon', () => {
@@ -58,32 +65,33 @@ describe('ImageMessageBalloon', () => {
 		);
 	});
 
-	it('saves the single image to the target folder when the save button is clicked', async () => {
+	it('saves the single image to the group basic-documents endpoint when the save button is clicked', async () => {
 		render(
 			<ImageMessageBalloon
-				folderId={123}
 				images={[IMAGE_ONE]}
 				message="message"
+				saveProps={{groupId: 123}}
 			/>
 		);
 
 		fireEvent.click(screen.getByRole('button', {name: 'save-image'}));
 
-		await waitFor(() => expect(mockFetch).toHaveBeenCalledWith(IMAGE_ONE));
-
-		const postCall = mockFetch.mock.calls.find(
-			([, init]) => (init as RequestInit)?.method === 'POST'
+		await waitFor(() =>
+			expect(mockFetch).toHaveBeenCalledWith(
+				'/o/cms/basic-documents/scopes/123',
+				expect.objectContaining({method: 'POST'})
+			)
 		);
 
-		expect(postCall?.[0]).toContain('/document-folders/123/documents');
+		expect(lastPostBody().file.fileBase64).toBe('one');
 	});
 
 	it('selects every image by default and saves only the images still selected', async () => {
 		render(
 			<ImageMessageBalloon
-				folderId={123}
 				images={[IMAGE_ONE, IMAGE_TWO]}
 				message="message"
+				saveProps={{groupId: 123}}
 			/>
 		);
 
@@ -101,9 +109,49 @@ describe('ImageMessageBalloon', () => {
 
 		fireEvent.click(screen.getByRole('button', {name: 'save-image'}));
 
-		await waitFor(() => expect(mockFetch).toHaveBeenCalledWith(IMAGE_ONE));
+		await waitFor(() =>
+			expect(
+				mockFetch.mock.calls.filter(
+					([, init]) => (init as RequestInit)?.method === 'POST'
+				)
+			).toHaveLength(1)
+		);
 
-		expect(mockFetch).not.toHaveBeenCalledWith(IMAGE_TWO);
+		expect(lastPostBody().file.fileBase64).toBe('one');
+	});
+
+	it('writes the saved document into the file-upload field in field mode', async () => {
+		const field = document.createElement('div');
+
+		field.dataset.aiAssistantFieldId = 'field-1';
+		field.innerHTML =
+			'<input id="field-1-file-upload" type="text" />' +
+			'<span class="forms-file-upload-file-name"></span>' +
+			'<button class="d-none" id="field-1-file-upload-remove-button"></button>';
+
+		document.body.appendChild(field);
+
+		render(
+			<ImageMessageBalloon
+				images={[IMAGE_ONE]}
+				message="message"
+				saveProps={{fieldId: 'field-1', groupId: 123}}
+			/>
+		);
+
+		fireEvent.click(screen.getByRole('button', {name: 'save-image'}));
+
+		const fileInput = document.getElementById(
+			'field-1-file-upload'
+		) as HTMLInputElement;
+
+		await waitFor(() => expect(fileInput.value).toBe('1'));
+
+		expect(
+			document.getElementById('field-1-file-upload-remove-button')
+		).not.toHaveClass('d-none');
+
+		field.remove();
 	});
 
 	it('disables the save button when no image is selected', () => {
@@ -111,6 +159,7 @@ describe('ImageMessageBalloon', () => {
 			<ImageMessageBalloon
 				images={[IMAGE_ONE, IMAGE_TWO]}
 				message="message"
+				saveProps={{groupId: 123}}
 			/>
 		);
 
@@ -137,10 +186,10 @@ describe('ImageMessageBalloon', () => {
 
 		render(
 			<ImageMessageBalloon
-				folderId={123}
 				images={[IMAGE_ONE, IMAGE_TWO]}
 				message="message"
 				onRegenerate={jest.fn()}
+				saveProps={{groupId: 123}}
 			/>
 		);
 

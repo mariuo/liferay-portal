@@ -14,28 +14,38 @@ import {saveGeneratedImages} from '../services/saveGeneratedImages';
 
 import '../chat.scss';
 import renderAIAssistantMessageMarkdown from '../utils/renderAIAssistantMessageMarkdown';
+import setFileUploadFieldValue from '../utils/setFileUploadFieldValue';
+import SpaceSelectionModalContent from './SpaceSelectionModalContent';
+
+export interface SaveProps {
+	fieldId?: string;
+	groupId?: number | string;
+	objectEntryFolderExternalReferenceCode?: string;
+}
 
 interface ImageMessageBalloonProps {
-	folderId?: number | string;
 	images: string[];
 	message?: string;
 	onRegenerate?: () => void;
-	siteId?: number | string;
+	saveProps?: SaveProps;
 }
 
 const ImageMessageBalloon: React.FC<ImageMessageBalloonProps> = ({
-	folderId,
 	images,
 	message,
 	onRegenerate,
-	siteId,
+	saveProps = {},
 }) => {
+	const {fieldId, groupId, objectEntryFolderExternalReferenceCode} =
+		saveProps;
+
 	const multiple = images.length > 1;
 
 	const [selectedIndexes, setSelectedIndexes] = useState<Set<number>>(
 		() => new Set(images.map((_, index) => index))
 	);
 	const [saving, setSaving] = useState<boolean>(false);
+	const [selectingSpace, setSelectingSpace] = useState<boolean>(false);
 
 	function toggleSelected(index: number) {
 		setSelectedIndexes((previousSelectedIndexes) => {
@@ -56,19 +66,40 @@ const ImageMessageBalloon: React.FC<ImageMessageBalloonProps> = ({
 		selectedIndexes.has(index)
 	);
 
-	async function handleSave() {
-		if (!selectedImages.length) {
-			return;
-		}
-
+	async function saveToGroup(targetGroupId: number | string) {
 		setSaving(true);
 
 		try {
-			await saveGeneratedImages(selectedImages, {folderId, siteId});
+			const imagesToSave = fieldId
+				? selectedImages.slice(0, 1)
+				: selectedImages;
+
+			const documents = await saveGeneratedImages(imagesToSave, {
+				groupId: targetGroupId,
+				objectEntryFolderExternalReferenceCode,
+			});
+
+			if (fieldId && documents[0]) {
+				setFileUploadFieldValue(fieldId, documents[0]);
+			}
 		}
 		finally {
 			setSaving(false);
 		}
+	}
+
+	function handleSave() {
+		if (!selectedImages.length) {
+			return;
+		}
+
+		if (groupId) {
+			saveToGroup(groupId);
+
+			return;
+		}
+
+		setSelectingSpace(true);
 	}
 
 	return (
@@ -146,7 +177,9 @@ const ImageMessageBalloon: React.FC<ImageMessageBalloonProps> = ({
 				)}
 
 				<ClayButton
-					disabled={saving || !selectedImages.length}
+					disabled={
+						saving || selectingSpace || !selectedImages.length
+					}
 					displayType="primary"
 					onClick={handleSave}
 				>
@@ -166,6 +199,18 @@ const ImageMessageBalloon: React.FC<ImageMessageBalloonProps> = ({
 					)}
 				</ClayButton>
 			</div>
+
+			{selectingSpace && (
+				<SpaceSelectionModalContent
+					onSelectSpace={(chosenGroupId) => {
+						setSelectingSpace(false);
+
+						if (chosenGroupId) {
+							saveToGroup(chosenGroupId);
+						}
+					}}
+				/>
+			)}
 		</div>
 	);
 };
