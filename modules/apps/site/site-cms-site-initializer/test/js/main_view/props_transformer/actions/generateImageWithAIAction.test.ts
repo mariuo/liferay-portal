@@ -16,13 +16,35 @@ describe('generateImageWithAIAction', () => {
 		fireSpy.mockRestore();
 	});
 
-	it('fires the open-chat event full size with the given message', () => {
+	it('fires the open-chat event full size with the given message for a direct save to Files', () => {
 		generateImageWithAIAction({
 			action: 'generateImageWithAI',
 			message: 'Generate Single Image',
 		});
 
 		expect(fireSpy).toHaveBeenCalledWith('openAIAssistantChat', {
+			context: {
+				groupId: undefined,
+				objectEntryFolderExternalReferenceCode: undefined,
+			},
+			fullSize: true,
+			message: 'Generate Single Image',
+		});
+	});
+
+	it('forwards the destination Space and folder in the chat context when provided', () => {
+		generateImageWithAIAction({
+			action: 'generateImageWithAI',
+			groupId: '123',
+			message: 'Generate Single Image',
+			objectEntryFolderExternalReferenceCode: 'L_FILES',
+		});
+
+		expect(fireSpy).toHaveBeenCalledWith('openAIAssistantChat', {
+			context: {
+				groupId: '123',
+				objectEntryFolderExternalReferenceCode: 'L_FILES',
+			},
 			fullSize: true,
 			message: 'Generate Single Image',
 		});

@@ -5,13 +5,20 @@
 
 export type GenerateImageWithAIData = {
 	action: 'generateImageWithAI';
+	groupId?: string;
 	message: string;
+	objectEntryFolderExternalReferenceCode?: string;
 };
 
 export default function generateImageWithAIAction(
 	data: GenerateImageWithAIData
 ) {
 	Liferay.fire('openAIAssistantChat', {
+		context: {
+			groupId: data.groupId,
+			objectEntryFolderExternalReferenceCode:
+				data.objectEntryFolderExternalReferenceCode,
+		},
 		fullSize: true,
 		message: data.message,
 	});
