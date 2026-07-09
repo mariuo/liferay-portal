@@ -29,6 +29,14 @@ function showRemoveButton() {
 	removeButton.addEventListener('click', onRemoveFile);
 }
 
+if (input.attributes.isCMS) {
+	wrapper.dataset.aiAssistantFieldId = fragmentElementId;
+
+	if (input.attributes.groupId) {
+		wrapper.dataset.aiAssistantGroupId = input.attributes.groupId;
+	}
+}
+
 if (
 	!input.attributes.selectFromDocumentLibrary &&
 	input.required &&
