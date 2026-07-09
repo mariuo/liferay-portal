@@ -28,6 +28,7 @@ import {
 import AIAssistantFooterDisclaimer from './components/AIAssistantFooterDisclaimer';
 import AIAssistantMessageBalloon from './components/AIAssistantMessageBalloon';
 import CategorizationMessageBalloon from './components/CategorizationMessageBalloon';
+import ImageMessageBalloon from './components/ImageMessageBalloon';
 import UserMessageBalloon from './components/UserMessageBalloon';
 
 import './chat.scss';
@@ -36,6 +37,7 @@ interface message {
 	agentDefinitionExternalReferenceCodes?: string[];
 	categorization?: CategorizeEventPayload;
 	error?: boolean;
+	images?: string[];
 	sender: string;
 	text: string;
 }
@@ -237,6 +239,7 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 										dataJSON[
 											'agentDefinitionExternalReferenceCodes'
 										] ?? [],
+									images: dataJSON['images'],
 									sender: 'assistant',
 									text: dataJSON['data'],
 								},
@@ -377,6 +380,30 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 							<CategorizationMessageBalloon
 								key={index}
 								{...item.categorization}
+							/>
+						);
+					}
+
+					if (item.images?.length) {
+						const context = getContextRef.current();
+
+						return (
+							<ImageMessageBalloon
+								folderId={
+									context.folderId as
+										| number
+										| string
+										| undefined
+								}
+								images={item.images}
+								key={index}
+								message={item.text}
+								siteId={
+									context.siteId as
+										| number
+										| string
+										| undefined
+								}
 							/>
 						);
 					}
