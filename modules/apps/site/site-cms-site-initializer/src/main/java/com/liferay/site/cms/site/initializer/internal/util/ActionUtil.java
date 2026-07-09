@@ -58,6 +58,7 @@ import com.liferay.object.service.ObjectDefinitionSettingLocalServiceUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.petra.string.StringUtil;
+import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
@@ -909,6 +910,23 @@ public class ActionUtil {
 					httpServletRequest,
 					objectEntryFolderExternalReferenceCode)));
 
+		if (FeatureFlagManagerUtil.isEnabled(
+				PortalUtil.getCompanyId(httpServletRequest), "LPD-62272")) {
+
+			dropdownItems.add(
+				getGenerateImageWithAIDropdownItem(
+					LanguageUtil.get(
+						httpServletRequest, "generate-single-image-with-ai"),
+					LanguageUtil.get(
+						httpServletRequest, "generate-single-image")));
+			dropdownItems.add(
+				getGenerateImageWithAIDropdownItem(
+					LanguageUtil.get(
+						httpServletRequest, "generate-multiple-images-with-ai"),
+					LanguageUtil.get(
+						httpServletRequest, "generate-multiple-images")));
+		}
+
 		List<DropdownItem> filesCustomDropdownItems =
 			getFilesCustomDropdownItems(
 				httpServletRequest, objectEntryFolderExternalReferenceCode);
@@ -921,6 +939,20 @@ public class ActionUtil {
 		dropdownItems.addAll(filesCustomDropdownItems);
 
 		return dropdownItems;
+	}
+
+	public static DropdownItem getGenerateImageWithAIDropdownItem(
+		String label, String message) {
+
+		return DropdownItemBuilder.putData(
+			"action", "generateImageWithAI"
+		).putData(
+			"message", message
+		).setIcon(
+			"stars"
+		).setLabel(
+			label
+		).build();
 	}
 
 	public static String getRecycleBinURL(ThemeDisplay themeDisplay) {
