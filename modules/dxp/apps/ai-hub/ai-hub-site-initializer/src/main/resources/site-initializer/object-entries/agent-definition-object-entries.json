@@ -193,6 +193,19 @@
 				"en_US": "Site Builder"
 			},
 			"workflowDefinitionName": "Site Builder"
+		},
+		{
+			"active": true,
+			"description": "This agent translates the content entry the user is currently editing into one or more target locales, deriving each translation from the entry's current field values and preserving structure, rich text, inline formatting, links, and embedded media. Use it whenever the user asks to translate, localize, or generate missing languages for the entry they are editing. The entry's field values, source locale, and chosen target locales are supplied automatically by the application, so always proceed without asking the user for them. When the target locales have not been chosen yet, the agent asks the user which languages to translate into; when a non-AI translation service is configured for the company it delegates the translation to it, otherwise it translates with the language model. It returns per-field, per-locale translations and does not save anything.",
+			"externalReferenceCode": "L_TRANSLATE_CONTENT",
+			"inputVariables": "instruction",
+			"outputVariable": "translations",
+			"r_accountToAIHubAgentDefinitions_accountEntryERC": "L_AI_HUB",
+			"system": true,
+			"title_i18n": {
+				"en_US": "Translate Content"
+			},
+			"workflowDefinitionName": "Translate Content"
 		}
 	],
 	"objectDefinitionName": "AIHubAgentDefinition"

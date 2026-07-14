@@ -1,0 +1,304 @@
+<?xml version="1.0"?>
+
+<workflow-definition
+	xmlns="urn:liferay.com:liferay-workflow_7.4.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="urn:liferay.com:liferay-workflow_7.4.0 http://www.liferay.com/dtd/liferay-workflow-definition_7_4_0.xsd"
+>
+	<name>Translate Content</name>
+	<version>1</version>
+	<service>
+		<name>requestTargetLocales</name>
+		<metadata>
+			<![CDATA[
+				{
+					"xy": [
+						276,
+						130
+					]
+				}
+			]]>
+		</metadata>
+		<input-variables>
+			<![CDATA[
+				[
+					{
+						"name": "targetLanguageIds",
+						"type": "string"
+					}
+				]
+			]]>
+		</input-variables>
+		<java-delegate>javaDelegate#requestTargetLocales</java-delegate>
+		<labels>
+			<label language-id="en_US">
+				Request Target Locales
+			</label>
+		</labels>
+		<output-variables>
+			<![CDATA[
+				[
+					{
+						"name": "output",
+						"type": "string"
+					}
+				]
+			]]>
+		</output-variables>
+		<transitions>
+			<transition>
+				<labels>
+					<label language-id="en_US">
+						Translate Content
+					</label>
+				</labels>
+				<name>translateContent</name>
+				<target>translateContent</target>
+				<default>true</default>
+			</transition>
+		</transitions>
+	</service>
+	<service>
+		<name>translateContent</name>
+		<metadata>
+			<![CDATA[
+				{
+					"xy": [
+						276,
+						250
+					]
+				}
+			]]>
+		</metadata>
+		<input-variables>
+			<![CDATA[
+				[
+					{
+						"name": "fields",
+						"type": "string"
+					},
+					{
+						"name": "html",
+						"type": "string"
+					},
+					{
+						"name": "sourceLanguageId",
+						"type": "string"
+					},
+					{
+						"name": "targetLanguageIds",
+						"type": "string"
+					}
+				]
+			]]>
+		</input-variables>
+		<java-delegate>javaDelegate#translateContent</java-delegate>
+		<labels>
+			<label language-id="en_US">
+				Translate Content
+			</label>
+		</labels>
+		<output-variables>
+			<![CDATA[
+				[
+					{
+						"name": "translatedContent",
+						"type": "string"
+					}
+				]
+			]]>
+		</output-variables>
+		<transitions>
+			<transition>
+				<labels>
+					<label language-id="en_US">
+						Compose Translated Content
+					</label>
+				</labels>
+				<name>composeTranslatedContent</name>
+				<target>composeTranslatedContent</target>
+				<default>true</default>
+			</transition>
+		</transitions>
+	</service>
+	<llm>
+		<name>composeTranslatedContent</name>
+		<metadata>
+			<![CDATA[
+				{
+					"xy": [
+						276,
+						370
+					]
+				}
+			]]>
+		</metadata>
+		<labels>
+			<label language-id="en_US">
+				Compose Translated Content
+			</label>
+		</labels>
+		<input-variables>
+			<![CDATA[
+				[
+					{
+						"name": "fields",
+						"type": "string"
+					},
+					{
+						"name": "html",
+						"type": "string"
+					},
+					{
+						"name": "sourceLanguageId",
+						"type": "string"
+					},
+					{
+						"name": "targetLanguageIds",
+						"type": "string"
+					},
+					{
+						"name": "translatedContent",
+						"type": "string"
+					}
+				]
+			]]>
+		</input-variables>
+		<output-variables>
+			<![CDATA[
+				[
+					{
+						"name": "output",
+						"type": "string"
+					}
+				]
+			]]>
+		</output-variables>
+		<prompt>
+			<![CDATA[# Role
+
+You produce the translations of the current entry's fields from the source locale into each requested target locale.
+
+# Inputs
+
+- sourceLanguageId: the source locale of the current values, for example "en_US".
+- targetLanguageIds: a JSON array of target locales to translate into.
+- fields: a JSON object mapping each field name to its current source-locale value.
+- html: a JSON object mapping each field name to a boolean that is true for rich-text fields.
+- translatedContent: either an empty string, or a JSON object already holding the translations produced by a configured translation service.
+
+# Decision
+
+- When "translatedContent" is a non-empty JSON object, it is authoritative. Output it EXACTLY as received, without translating, re-wording, reformatting, or changing any value, field name, or locale. Do not add or remove entries.
+- Otherwise, translate the fields yourself following the hard rules below.
+
+# Hard rules
+
+- Translate ONLY the value of each field into each target locale. For a field whose "html" flag is true, preserve the exact structure, rich text, inline formatting, links, and embedded media: translate only human-readable text nodes and never alter HTML tags, attributes, or URLs.
+- Never invent fields. Translate only fields that appear in "fields" and have a non-empty value.
+- Write each translated value in its target locale. Do not add prose, notes, or commentary inside a value.
+
+# Output policy
+
+- Output a SINGLE raw JSON object and nothing else.
+- DO NOT wrap the JSON in markdown fences.
+- DO NOT add prose, commentary, or trailing text.
+- Always include "action": "autoTranslate" at the top level.
+- Shape:
+
+{
+	"action": "autoTranslate",
+	"results": [
+		{
+			"targetLanguageId": "<string, from targetLanguageIds>",
+			"fields": {
+				"<field name, from fields>": "<the translated value>"
+			}
+		}
+	],
+	"status": "complete",
+}]]>
+		</prompt>
+		<tools>
+			<![CDATA[[]]]>
+		</tools>
+		<transitions>
+			<transition>
+				<labels>
+					<label language-id="en_US">
+						End
+					</label>
+				</labels>
+				<name>end</name>
+				<target>end</target>
+				<default>true</default>
+			</transition>
+		</transitions>
+		<user-message>
+			<![CDATA[Source locale:
+{{sourceLanguageId}}
+
+Target locales (JSON):
+{{targetLanguageIds}}
+
+Fields (JSON):
+{{fields}}
+
+HTML flags (JSON):
+{{html}}
+
+Already translated content (JSON or empty):
+{{translatedContent}}]]>
+		</user-message>
+	</llm>
+	<state>
+		<name>start</name>
+		<metadata>
+			<![CDATA[
+				{
+					"xy": [
+						276,
+						10
+					]
+				}
+			]]>
+		</metadata>
+		<initial>true</initial>
+		<labels>
+			<label language-id="en_US">
+				Start
+			</label>
+		</labels>
+		<transitions>
+			<transition>
+				<labels>
+					<label language-id="en_US">
+						Request Target Locales
+					</label>
+				</labels>
+				<name>requestTargetLocales</name>
+				<target>requestTargetLocales</target>
+				<default>true</default>
+			</transition>
+		</transitions>
+	</state>
+	<state>
+		<name>end</name>
+		<metadata>
+			<![CDATA[
+				{
+					"terminal": true,
+					"xy": [
+						276,
+						610
+					]
+				}
+			]]>
+		</metadata>
+		<labels>
+			<label language-id="en_US">
+				End
+			</label>
+		</labels>
+	</state>
+</workflow-definition>

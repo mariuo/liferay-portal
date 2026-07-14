@@ -1,0 +1,11 @@
+{
+	"active": true,
+	"externalReferenceCode": "L_TRANSLATE_CONTENT",
+	"groupExternalReferenceCode": "[$ACCOUNT_ENTRY_GROUP_ERC:L_AI_HUB$]",
+	"name": "Translate Content",
+	"scope": "ai",
+	"title": "Translate Content",
+	"title_i18n": {
+		"en_US": "Translate Content"
+	}
+}
