@@ -35,6 +35,7 @@ const selectedLocalesAtom = State.atom<Record<string, Liferay.Language.Locale>>(
 );
 
 type Props = {
+	aiAssisted: boolean;
 	allowLocalizationManagement: boolean;
 	autoTranslateURL: string;
 	autoTranslationEnabled: boolean;
@@ -57,6 +58,7 @@ type Translations = {
 type TranslationStatus = 'not-translated' | 'translating' | 'translated';
 
 export function LocalizationSelect({
+	aiAssisted,
 	allowLocalizationManagement,
 	autoTranslateURL,
 	autoTranslationEnabled,
@@ -185,6 +187,22 @@ export function LocalizationSelect({
 			}
 		}
 
+		if (aiAssisted) {
+			Liferay.fire('openAIAssistantChat', {
+				context: {
+					fields: JSON.stringify(fields),
+					formId: form?.id,
+					html: JSON.stringify(html),
+					sourceLanguageId,
+					targetLanguageIds: '',
+				},
+				fullSize: true,
+				message: Liferay.Language.get('translate-content'),
+			});
+
+			return;
+		}
+
 		if (
 			hasTranslation &&
 			!(await openConfirmModal({
@@ -254,6 +272,7 @@ export function LocalizationSelect({
 			languageId: selectedLocaleId,
 		});
 	}, [
+		aiAssisted,
 		autoTranslateURL,
 		defaultLanguageId,
 		dropdownTrigger,
@@ -428,7 +447,7 @@ export function LocalizationSelect({
 					}
 				>
 					<ClayDropDown.ItemList>
-						{autoTranslationEnabled ? (
+						{!aiAssisted && autoTranslationEnabled ? (
 							<ClayDropDown.Item
 								disabled={autoTranslating}
 								onClick={autoTranslate}
@@ -523,6 +542,18 @@ export function LocalizationSelect({
 						</ClayDropDown.Item>
 					</ClayDropDown.ItemList>
 				</ClayDropDown>
+			) : null}
+
+			{aiAssisted && autoTranslationEnabled ? (
+				<ClayButtonWithIcon
+					aria-label={Liferay.Language.get('auto-translate-with-ai')}
+					displayType="secondary"
+					monospaced
+					onClick={autoTranslate}
+					size={size === 'small' ? 'sm' : 'regular'}
+					symbol="stars"
+					title={Liferay.Language.get('auto-translate-with-ai')}
+				/>
 			) : null}
 		</div>
 	);
