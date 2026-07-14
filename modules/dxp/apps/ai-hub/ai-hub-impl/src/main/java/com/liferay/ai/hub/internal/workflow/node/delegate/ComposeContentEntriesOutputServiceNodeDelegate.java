@@ -15,9 +15,15 @@ import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.URLCodec;
 import com.liferay.portal.kernel.util.Validator;
+import com.liferay.portal.kernel.workflow.WorkflowNodeManager;
+import com.liferay.portal.workflow.kaleo.model.KaleoInstanceToken;
+import com.liferay.portal.workflow.kaleo.model.KaleoNode;
+import com.liferay.portal.workflow.kaleo.model.KaleoTransition;
+import com.liferay.portal.workflow.kaleo.runtime.ExecutionContext;
 
 import java.io.Serializable;
 
+import java.util.List;
 import java.util.Map;
 
 import org.osgi.service.component.annotations.Component;
@@ -32,7 +38,8 @@ public class ComposeContentEntriesOutputServiceNodeDelegate
 
 	@Override
 	public String execute(
-			Map<String, String> inputVariables,
+			ExecutionContext executionContext,
+			Map<String, String> inputVariables, KaleoNode kaleoNode,
 			Map<String, Serializable> workflowContext)
 		throws Exception {
 
@@ -45,6 +52,8 @@ public class ComposeContentEntriesOutputServiceNodeDelegate
 
 			workflowContext.put("output", output);
 
+			_completeWorkflowNode(executionContext, kaleoNode, workflowContext);
+
 			return output;
 		}
 
@@ -55,6 +64,8 @@ public class ComposeContentEntriesOutputServiceNodeDelegate
 			String output = _getOutput(inputVariables);
 
 			workflowContext.put("output", output);
+
+			_completeWorkflowNode(executionContext, kaleoNode, workflowContext);
 
 			return output;
 		}
@@ -84,12 +95,33 @@ public class ComposeContentEntriesOutputServiceNodeDelegate
 
 		workflowContext.put("output", output);
 
+		_completeWorkflowNode(executionContext, kaleoNode, workflowContext);
+
 		return output;
 	}
 
 	@Override
 	public String getKey() {
 		return "javaDelegate#composeContentEntriesOutput";
+	}
+
+	private void _completeWorkflowNode(
+			ExecutionContext executionContext, KaleoNode kaleoNode,
+			Map<String, Serializable> workflowContext)
+		throws Exception {
+
+		KaleoInstanceToken kaleoInstanceToken =
+			executionContext.getKaleoInstanceToken();
+
+		List<KaleoTransition> kaleoTransitions =
+			kaleoNode.getKaleoTransitions();
+
+		KaleoTransition kaleoTransition = kaleoTransitions.get(0);
+
+		_workflowNodeManager.completeWorkflowNode(
+			kaleoInstanceToken.getCompanyId(), kaleoInstanceToken.getUserId(),
+			kaleoInstanceToken.getKaleoInstanceTokenId(),
+			kaleoTransition.getName(), workflowContext, false);
 	}
 
 	private String _getOutput(Map<String, String> inputVariables) {
@@ -110,5 +142,8 @@ public class ComposeContentEntriesOutputServiceNodeDelegate
 
 	@Reference
 	private JSONFactory _jsonFactory;
+
+	@Reference
+	private WorkflowNodeManager _workflowNodeManager;
 
 }

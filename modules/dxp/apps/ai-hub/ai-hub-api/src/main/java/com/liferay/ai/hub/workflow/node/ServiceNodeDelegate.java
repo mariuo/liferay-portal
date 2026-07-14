@@ -5,6 +5,9 @@
 
 package com.liferay.ai.hub.workflow.node;
 
+import com.liferay.portal.workflow.kaleo.model.KaleoNode;
+import com.liferay.portal.workflow.kaleo.runtime.ExecutionContext;
+
 import java.io.Serializable;
 
 import java.util.Map;
@@ -15,7 +18,8 @@ import java.util.Map;
 public interface ServiceNodeDelegate {
 
 	public String execute(
-			Map<String, String> inputVariables,
+			ExecutionContext executionContext,
+			Map<String, String> inputVariables, KaleoNode kaleoNode,
 			Map<String, Serializable> workflowContext)
 		throws Exception;
 

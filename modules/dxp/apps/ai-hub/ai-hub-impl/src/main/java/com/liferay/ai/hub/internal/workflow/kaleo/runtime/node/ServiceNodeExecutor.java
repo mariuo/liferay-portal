@@ -121,9 +121,10 @@ public class ServiceNodeExecutor extends BaseNodeExecutor {
 				workflowContext.put(
 					jsonObject.getString("name"),
 					serviceNodeDelegate.execute(
+						executionContext,
 						VariablesUtil.getInputVariables(
 							kaleoNodeSettingValues, workflowContext),
-						workflowContext));
+						currentKaleoNode, workflowContext));
 			}
 		}
 		catch (Exception exception) {
@@ -135,6 +136,13 @@ public class ServiceNodeExecutor extends BaseNodeExecutor {
 
 			throw new PortalException(exception);
 		}
+	}
+
+	@Override
+	protected void doExit(
+			KaleoNode currentKaleoNode, ExecutionContext executionContext,
+			List<PathElement> remainingPathElements)
+		throws PortalException {
 
 		KaleoTransition kaleoTransition = null;
 
@@ -148,17 +156,11 @@ public class ServiceNodeExecutor extends BaseNodeExecutor {
 
 		remainingPathElements.add(
 			new PathElement(
-				currentKaleoNode, kaleoTransition.getTargetKaleoNode(),
+				null, kaleoTransition.getTargetKaleoNode(),
 				new ExecutionContext(
 					executionContext.getKaleoInstanceToken(),
 					executionContext.getWorkflowContext(),
 					executionContext.getServiceContext())));
-	}
-
-	@Override
-	protected void doExit(
-		KaleoNode currentKaleoNode, ExecutionContext executionContext,
-		List<PathElement> remainingPathElements) {
 	}
 
 	private static final Log _log = LogFactoryUtil.getLog(
