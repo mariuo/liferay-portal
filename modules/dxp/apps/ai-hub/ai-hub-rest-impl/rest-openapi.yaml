@@ -57,6 +57,10 @@ components:
                 externalReferenceCode:
                     readOnly: true
                     type: string
+                id:
+                    format: int64
+                    readOnly: true
+                    type: integer
                 instructionDefinitionScope:
                     enum:
                         -   clickToChat

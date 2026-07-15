@@ -76,9 +76,14 @@ public class DefaultAgentImpl implements DefaultAgent {
 			}
 		}
 
+		KaleoInstanceToken kaleoInstanceToken =
+			_kaleoInstanceTokenLocalService.getRootKaleoInstanceToken(
+				workflowInstanceId, workflowContext,
+				agentContext.getServiceContext());
+
 		_workflowNodeManager.completeWorkflowNode(
 			agentContext.getCompanyId(), agentContext.getUserId(),
-			workflowInstanceId, null, workflowContext,
+			kaleoInstanceToken.getKaleoInstanceTokenId(), null, workflowContext,
 			false);
 	}
 

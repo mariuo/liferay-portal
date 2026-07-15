@@ -23,11 +23,13 @@ import submitPositiveReportFeedback from '../ReportFeedback/submitPositiveReport
 import {
 	ChatContext,
 	createEventSource,
+	postAgentInstanceResume,
 	postChatByExternalReferenceCodeMessage,
 } from './api';
 import AIAssistantFooterDisclaimer from './components/AIAssistantFooterDisclaimer';
 import AIAssistantMessageBalloon from './components/AIAssistantMessageBalloon';
 import CategorizationMessageBalloon from './components/CategorizationMessageBalloon';
+import TranslationsMessageBalloon from './components/TranslationsMessageBalloon';
 import UserMessageBalloon from './components/UserMessageBalloon';
 
 import './chat.scss';
@@ -111,6 +113,9 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 		instructionDefinitionScope
 	);
 	const messagesEndRef = useRef<HTMLDivElement | null>(null);
+	const sourceLanguageIdRef = useRef<string>(
+		Liferay.ThemeDisplay.getLanguageId()
+	);
 	const triggerRef = useRef<HTMLButtonElement | null>(null);
 	const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -119,6 +124,18 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 		getContextRef.current = getContext;
 		instructionDefinitionScopeRef.current = instructionDefinitionScope;
 	}, [context, getContext, instructionDefinitionScope]);
+
+	useEffect(() => {
+		const onLocaleChanged = ({languageId}: {languageId: string}) => {
+			sourceLanguageIdRef.current = languageId;
+		};
+
+		Liferay.on('localizationSelect:localeChanged', onLocaleChanged);
+
+		return () => {
+			Liferay.detach('localizationSelect:localeChanged', onLocaleChanged);
+		};
+	}, []);
 
 	const sendMessage = useCallback((text: string) => {
 		if (!text.trim()) {
@@ -150,6 +167,18 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 			}).catch(() => setIsGenerating(false));
 		}
 	}, []);
+
+	const handleUserInput = useCallback(
+		(agentInstanceId: number, context: ChatContext) => {
+			setIsGenerating(true);
+
+			postAgentInstanceResume({
+				agentInstanceId,
+				context,
+			}).catch(() => setIsGenerating(false));
+		},
+		[]
+	);
 
 	function onSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -355,6 +384,32 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 		};
 	}, []);
 
+	useEffect(() => {
+		const handleOpen = (payload: {
+			context?: ChatContext;
+			message?: string;
+		}) => {
+			setActive(true);
+
+			if (payload?.context) {
+				contextRef.current = {
+					...contextRef.current,
+					...payload.context,
+				};
+			}
+
+			if (payload?.message) {
+				sendMessage(payload.message);
+			}
+		};
+
+		Liferay.on('openAIAssistantChat', handleOpen);
+
+		return () => {
+			Liferay.detach('openAIAssistantChat', handleOpen);
+		};
+	}, [sendMessage]);
+
 	const chatSurface = (
 		<>
 			<div className="ai-assistant-chat__messages-container">
@@ -384,6 +439,42 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 							/>
 						);
 					}
+
+					try {
+						const json = JSON.parse(
+							item.text
+								.trim()
+								.replace(/^```(?:json)?/i, '')
+								.replace(/```$/, '')
+								.trim()
+						);
+
+						if (json?.action === 'autoTranslate') {
+							const {
+								agentInstanceId,
+								availableLanguageIds,
+								results,
+								targetLanguageIds,
+							} = json;
+
+							return (
+								<TranslationsMessageBalloon
+									availableLanguageIds={availableLanguageIds}
+									key={index}
+									onSubmit={(context) =>
+										handleUserInput(
+											agentInstanceId,
+											context
+										)
+									}
+									requestedLanguageIds={targetLanguageIds}
+									results={results}
+									sourceLanguageIdRef={sourceLanguageIdRef}
+								/>
+							);
+						}
+					}
+					catch {}
 
 					return (
 						<AIAssistantMessageBalloon

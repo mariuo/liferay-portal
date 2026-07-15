@@ -115,6 +115,25 @@ public class AgentInstance implements Cloneable, Serializable {
 
 	protected String externalReferenceCode;
 
+	public Long getId() {
+		return id;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	public void setId(UnsafeSupplier<Long, Exception> idUnsafeSupplier) {
+		try {
+			id = idUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected Long id;
+
 	public InstructionDefinitionScope getInstructionDefinitionScope() {
 		return instructionDefinitionScope;
 	}
@@ -258,4 +277,4 @@ public class AgentInstance implements Cloneable, Serializable {
 	}
 
 }
-// LIFERAY-REST-BUILDER-HASH:624860553
+// LIFERAY-REST-BUILDER-HASH:1918934453

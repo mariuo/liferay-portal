@@ -235,7 +235,7 @@ public abstract class BaseAgentInstanceResourceTestCase {
 		assertHttpResponseStatusCode(
 			204,
 			agentInstanceResource.postAgentInstanceResumeHttpResponse(
-				agentInstance.getAgentInstanceId(), agentInstance));
+				agentInstance.getId(), agentInstance));
 
 		assertHttpResponseStatusCode(
 			404,
@@ -327,6 +327,10 @@ public abstract class BaseAgentInstanceResourceTestCase {
 
 	protected void assertValid(AgentInstance agentInstance) throws Exception {
 		boolean valid = true;
+
+		if (agentInstance.getId() == null) {
+			valid = false;
+		}
 
 		for (String additionalAssertFieldName :
 				getAdditionalAssertFieldNames()) {
@@ -456,6 +460,8 @@ public abstract class BaseAgentInstanceResourceTestCase {
 
 		graphQLFields.add(new GraphQLField("externalReferenceCode"));
 
+		graphQLFields.add(new GraphQLField("id"));
+
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
 					com.liferay.ai.hub.rest.dto.v1_0.AgentInstance.class)) {
@@ -560,6 +566,16 @@ public abstract class BaseAgentInstanceResourceTestCase {
 				if (!Objects.deepEquals(
 						agentInstance1.getExternalReferenceCode(),
 						agentInstance2.getExternalReferenceCode())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("id", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						agentInstance1.getId(), agentInstance2.getId())) {
 
 					return false;
 				}
@@ -812,6 +828,11 @@ public abstract class BaseAgentInstanceResourceTestCase {
 			return sb.toString();
 		}
 
+		if (entityFieldName.equals("id")) {
+			throw new IllegalArgumentException(
+				"Invalid entity field " + entityFieldName);
+		}
+
 		if (entityFieldName.equals("instructionDefinitionScope")) {
 			throw new IllegalArgumentException(
 				"Invalid entity field " + entityFieldName);
@@ -961,6 +982,7 @@ public abstract class BaseAgentInstanceResourceTestCase {
 				asynchronous = RandomTestUtil.randomBoolean();
 				externalReferenceCode = StringUtil.toLowerCase(
 					RandomTestUtil.randomString());
+				id = RandomTestUtil.randomLong();
 				output = StringUtil.toLowerCase(RandomTestUtil.randomString());
 				sseEventSinkKey = StringUtil.toLowerCase(
 					RandomTestUtil.randomString());
@@ -1188,4 +1210,4 @@ public abstract class BaseAgentInstanceResourceTestCase {
 		_agentInstanceResource;
 
 }
-// LIFERAY-REST-BUILDER-HASH:1696262747
+// LIFERAY-REST-BUILDER-HASH:-30001952

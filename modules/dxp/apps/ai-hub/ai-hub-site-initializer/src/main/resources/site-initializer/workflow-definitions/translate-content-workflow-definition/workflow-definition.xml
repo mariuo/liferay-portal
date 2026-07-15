@@ -8,7 +8,7 @@
 	<name>Translate Content</name>
 	<version>1</version>
 	<service>
-		<name>requestTargetLocales</name>
+		<name>requestPageContext</name>
 		<metadata>
 			<![CDATA[
 				{
@@ -23,16 +23,16 @@
 			<![CDATA[
 				[
 					{
-						"name": "targetLanguageIds",
+						"name": "instruction",
 						"type": "string"
 					}
 				]
 			]]>
 		</input-variables>
-		<java-delegate>javaDelegate#requestTargetLocales</java-delegate>
+		<java-delegate>javaDelegate#requestPageContext</java-delegate>
 		<labels>
 			<label language-id="en_US">
-				Request Target Locales
+				Request Page Context
 			</label>
 		</labels>
 		<output-variables>
@@ -210,13 +210,12 @@ You produce the translations of the current entry's fields from the source local
 	"action": "autoTranslate",
 	"results": [
 		{
-			"targetLanguageId": "<string, from targetLanguageIds>",
 			"fields": {
 				"<field name, from fields>": "<the translated value>"
-			}
+			},
+			"targetLanguageId": "<string, from targetLanguageIds>"
 		}
-	],
-	"status": "complete",
+	]
 }]]>
 		</prompt>
 		<tools>
@@ -273,11 +272,11 @@ Already translated content (JSON or empty):
 			<transition>
 				<labels>
 					<label language-id="en_US">
-						Request Target Locales
+						Request Page Context
 					</label>
 				</labels>
-				<name>requestTargetLocales</name>
-				<target>requestTargetLocales</target>
+				<name>requestPageContext</name>
+				<target>requestPageContext</target>
 				<default>true</default>
 			</transition>
 		</transitions>

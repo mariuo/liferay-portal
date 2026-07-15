@@ -189,14 +189,6 @@ export function LocalizationSelect({
 
 		if (aiAssisted) {
 			Liferay.fire('openAIAssistantChat', {
-				context: {
-					fields: JSON.stringify(fields),
-					formId: form?.id,
-					html: JSON.stringify(html),
-					sourceLanguageId,
-					targetLanguageIds: '',
-				},
-				fullSize: true,
 				message: Liferay.Language.get('translate-content'),
 			});
 
@@ -547,6 +539,7 @@ export function LocalizationSelect({
 			{aiAssisted && autoTranslationEnabled ? (
 				<ClayButtonWithIcon
 					aria-label={Liferay.Language.get('auto-translate-with-ai')}
+					borderless
 					displayType="secondary"
 					monospaced
 					onClick={autoTranslate}

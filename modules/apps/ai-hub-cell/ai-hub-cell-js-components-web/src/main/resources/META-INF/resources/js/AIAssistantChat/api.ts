@@ -75,6 +75,35 @@ async function postAuthorizationToken() {
 	}
 }
 
+export async function postAgentInstanceResume({
+	agentInstanceId,
+	context,
+}: {
+	agentInstanceId: number;
+	context: ChatContext;
+}) {
+	const authorizationToken = await postAuthorizationToken();
+
+	if (!authorizationToken) {
+		return;
+	}
+
+	return await fetch(
+		`${authorizationToken.serviceURL}${AI_HUB_ENDPOINT}/agent-instances/${agentInstanceId}/resume`,
+		{
+			body: JSON.stringify({context}),
+			headers: new Headers({
+				'Accept': 'application/json',
+				'Authorization': `Bearer ${authorizationToken.accessToken}`,
+				'Content-Type': 'application/json',
+				'Liferay-AI-Hub-Cell-On-Behalf-Of':
+					authorizationToken.userToken,
+			}),
+			method: 'POST',
+		}
+	);
+}
+
 export async function postChatByExternalReferenceCodeMessage({
 	chatContext,
 	eventSourceReference,
