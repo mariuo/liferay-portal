@@ -54,6 +54,10 @@ public interface AgentInstanceResource {
 	public Response postAgentInstanceBatch(String callbackURL, Object object)
 		throws Exception;
 
+	public void postAgentInstanceResume(
+			Long agentInstanceId, AgentInstance agentInstance)
+		throws Exception;
+
 	public default void setContextAcceptLanguage(
 		AcceptLanguage contextAcceptLanguage) {
 	}
@@ -150,4 +154,4 @@ public interface AgentInstanceResource {
 	}
 
 }
-// LIFERAY-REST-BUILDER-HASH:-2046419398
+// LIFERAY-REST-BUILDER-HASH:561248402

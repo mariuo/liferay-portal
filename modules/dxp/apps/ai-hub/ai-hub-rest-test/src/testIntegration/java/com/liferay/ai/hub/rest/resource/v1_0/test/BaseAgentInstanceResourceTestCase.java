@@ -227,6 +227,30 @@ public abstract class BaseAgentInstanceResourceTestCase {
 	}
 
 	@Test
+	public void testPostAgentInstanceResume() throws Exception {
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		AgentInstance agentInstance =
+			testPostAgentInstanceResume_addAgentInstance();
+
+		assertHttpResponseStatusCode(
+			204,
+			agentInstanceResource.postAgentInstanceResumeHttpResponse(
+				agentInstance.getAgentInstanceId(), agentInstance));
+
+		assertHttpResponseStatusCode(
+			404,
+			agentInstanceResource.postAgentInstanceResumeHttpResponse(
+				0L, agentInstance));
+	}
+
+	protected AgentInstance testPostAgentInstanceResume_addAgentInstance()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
 	public void testBatchEngineDeleteImportTask() throws Exception {
 		Assert.assertTrue(true);
 	}
@@ -1164,4 +1188,4 @@ public abstract class BaseAgentInstanceResourceTestCase {
 		_agentInstanceResource;
 
 }
-// LIFERAY-REST-BUILDER-HASH:517036902
+// LIFERAY-REST-BUILDER-HASH:1696262747

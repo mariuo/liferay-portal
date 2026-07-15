@@ -156,6 +156,38 @@ public abstract class BaseAgentInstanceResourceImpl
 		).build();
 	}
 
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -X 'POST' 'http://localhost:8080/o/ai-hub/v1.0/agent-instances/{agentInstanceId}/resume' -d $'{"agentDefinitionExternalReferenceCode": ___, "asynchronous": ___, "context": ___, "instructionDefinitionScope": ___, "sseEventSinkKey": ___}' --header 'Content-Type: application/json' -u 'test@liferay.com:test'
+	 */
+	@io.swagger.v3.oas.annotations.Parameters(
+		value = {
+			@io.swagger.v3.oas.annotations.Parameter(
+				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
+				name = "agentInstanceId"
+			)
+		}
+	)
+	@io.swagger.v3.oas.annotations.tags.Tags(
+		value = {
+			@io.swagger.v3.oas.annotations.tags.Tag(name = "AgentInstance")
+		}
+	)
+	@jakarta.ws.rs.Consumes({"application/json", "application/xml"})
+	@jakarta.ws.rs.Path("/agent-instances/{agentInstanceId}/resume")
+	@jakarta.ws.rs.POST
+	@jakarta.ws.rs.Produces({"application/json", "application/xml"})
+	@Override
+	public void postAgentInstanceResume(
+			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
+			@jakarta.validation.constraints.NotNull
+			@jakarta.ws.rs.PathParam("agentInstanceId")
+			Long agentInstanceId,
+			AgentInstance agentInstance)
+		throws Exception {
+	}
+
 	@Override
 	@SuppressWarnings("PMD.UnusedLocalVariable")
 	public void create(
@@ -844,4 +876,4 @@ public abstract class BaseAgentInstanceResourceImpl
 		LogFactoryUtil.getLog(BaseAgentInstanceResourceImpl.class);
 
 }
-// LIFERAY-REST-BUILDER-HASH:-713241632
+// LIFERAY-REST-BUILDER-HASH:1173212900
