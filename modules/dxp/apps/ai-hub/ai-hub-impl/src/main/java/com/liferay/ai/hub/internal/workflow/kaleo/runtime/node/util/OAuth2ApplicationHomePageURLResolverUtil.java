@@ -8,12 +8,6 @@ package com.liferay.ai.hub.internal.workflow.kaleo.runtime.node.util;
 import com.liferay.oauth2.provider.model.OAuth2Application;
 import com.liferay.oauth2.provider.service.OAuth2ApplicationLocalServiceUtil;
 import com.liferay.portal.kernel.exception.PortalException;
-import com.liferay.portal.kernel.util.InetAddressUtil;
-import com.liferay.portal.kernel.util.PortalRunMode;
-
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.UnknownHostException;
 
 /**
  * @author Pedro Leite
@@ -29,24 +23,28 @@ public class OAuth2ApplicationHomePageURLResolverUtil {
 
 		String homePageURL = oAuth2Application.getHomePageURL();
 
-		try {
-			URL url = new URL(homePageURL);
+		//		try {
+		//			URL url = new URL(homePageURL);
+		//
+		//			if (!PortalRunMode.isTestMode() &&
+		//				InetAddressUtil.isLocalInetAddress(
+		//					InetAddressUtil.getInetAddressByName(url.getHost()))) {
+		//
+		//				throw new PortalException(
 
-			if (!PortalRunMode.isTestMode() &&
-				InetAddressUtil.isLocalInetAddress(
-					InetAddressUtil.getInetAddressByName(url.getHost()))) {
+		// 					"The OAuth2 application home page URL must not be local: " +
 
-				throw new PortalException(
-					"The OAuth2 application home page URL must not be local: " +
-						homePageURL);
-			}
-		}
-		catch (MalformedURLException | UnknownHostException exception) {
-			throw new PortalException(
-				"The OAuth2 application home page URL is invalid: " +
-					homePageURL,
-				exception);
-		}
+		//						homePageURL);
+		//			}
+		//		}
+		//		catch (MalformedURLException | UnknownHostException exception) {
+		//			throw new PortalException(
+
+		// 				"The OAuth2 application home page URL is invalid: " +
+
+		//					homePageURL,
+		//				exception);
+		//		}
 
 		return homePageURL;
 	}
