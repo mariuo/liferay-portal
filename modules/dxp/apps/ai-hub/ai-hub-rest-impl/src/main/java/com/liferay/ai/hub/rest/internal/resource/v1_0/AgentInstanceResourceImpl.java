@@ -126,6 +126,36 @@ public class AgentInstanceResourceImpl extends BaseAgentInstanceResourceImpl {
 		};
 	}
 
+	@Override
+	public AgentInstance postAgentInstanceUserInput(
+			Long workflowInstanceId, AgentInstance agentInstance)
+		throws Exception {
+
+		if (!FeatureFlagManagerUtil.isEnabled(
+				contextCompany.getCompanyId(), "LPD-62272")) {
+
+			throw new UnsupportedOperationException();
+		}
+
+		AgentContext agentContext = AgentContext.builder(
+		).companyId(
+			contextCompany.getCompanyId()
+		).input(
+			agentInstance.getContext()
+		).serviceContext(
+			ServiceContextFactory.getInstance(contextHttpServletRequest)
+		).userId(
+			contextUser.getUserId()
+		).userToken(
+			contextHttpServletRequest.getHeader(
+				"Liferay-AI-Hub-Cell-On-Behalf-Of")
+		).build();
+
+		_defaultAgent.resume(agentContext, workflowInstanceId);
+
+		return new AgentInstance();
+	}
+
 	@Reference
 	private AgentDefinitionManager _agentDefinitionManager;
 

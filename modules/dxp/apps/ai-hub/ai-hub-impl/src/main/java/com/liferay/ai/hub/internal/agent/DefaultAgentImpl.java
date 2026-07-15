@@ -10,10 +10,20 @@ import com.liferay.ai.hub.agent.DefaultAgent;
 import com.liferay.ai.hub.internal.langchain4j.agentic.internal.InternalAgentImpl;
 import com.liferay.ai.hub.quota.QuotaManager;
 import com.liferay.petra.function.transform.TransformUtil;
+import com.liferay.portal.kernel.util.MapUtil;
+import com.liferay.portal.kernel.workflow.WorkflowInstance;
 import com.liferay.portal.kernel.workflow.WorkflowInstanceManager;
+import com.liferay.portal.kernel.workflow.WorkflowNodeManager;
+import com.liferay.portal.workflow.kaleo.model.KaleoInstanceToken;
+import com.liferay.portal.workflow.kaleo.service.KaleoInstanceTokenLocalService;
 import com.liferay.portal.workflow.manager.WorkflowDefinitionManager;
 
 import dev.langchain4j.agentic.planner.AgentArgument;
+
+import java.io.Serializable;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -47,6 +57,39 @@ public class DefaultAgentImpl implements DefaultAgent {
 		return internalAgentImpl.invoke(agentContext.getInput());
 	}
 
+	@Override
+	public void resume(AgentContext agentContext, long workflowInstanceId)
+		throws Exception {
+
+		WorkflowInstance workflowInstance =
+			_workflowInstanceManager.getWorkflowInstance(
+				agentContext.getCompanyId(), workflowInstanceId);
+
+		Map<String, Serializable> workflowContext = new HashMap<>(
+			workflowInstance.getWorkflowContext());
+
+		Map<String, ?> input = agentContext.getInput();
+
+		if (input != null) {
+			for (String key : input.keySet()) {
+				workflowContext.put(key, MapUtil.getString(input, key));
+			}
+		}
+
+		KaleoInstanceToken kaleoInstanceToken =
+			_kaleoInstanceTokenLocalService.getRootKaleoInstanceToken(
+				workflowInstanceId, workflowContext,
+				agentContext.getServiceContext());
+
+		_workflowNodeManager.completeWorkflowNode(
+			agentContext.getCompanyId(), agentContext.getUserId(),
+			kaleoInstanceToken.getKaleoInstanceTokenId(), null, workflowContext,
+			false);
+	}
+
+	@Reference
+	private KaleoInstanceTokenLocalService _kaleoInstanceTokenLocalService;
+
 	@Reference(policyOption = ReferencePolicyOption.GREEDY)
 	private QuotaManager _quotaManager;
 
@@ -55,5 +98,8 @@ public class DefaultAgentImpl implements DefaultAgent {
 
 	@Reference
 	private WorkflowInstanceManager _workflowInstanceManager;
+
+	@Reference
+	private WorkflowNodeManager _workflowNodeManager;
 
 }
