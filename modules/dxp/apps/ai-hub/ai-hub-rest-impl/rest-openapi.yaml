@@ -477,6 +477,30 @@ paths:
                     content:
                         text/event-stream: {}
             tags: ["AgentInstance"]
+    "/agent-instances/{agentInstanceId}/resume":
+        post:
+            operationId: postAgentInstanceResume
+            parameters:
+                -   in: path
+                    name: agentInstanceId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/AgentInstance"
+                    application/xml:
+                        schema:
+                            $ref: "#/components/schemas/AgentInstance"
+            responses:
+                204:
+                    content:
+                        application/json: {}
+                        application/xml: {}
+            tags: ["AgentInstance"]
     "/chatbots/by-external-reference-code/{externalReferenceCode}":
         get:
             operationId: getChatbotByExternalReferenceCode
