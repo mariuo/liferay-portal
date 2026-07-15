@@ -127,8 +127,8 @@ public class AgentInstanceResourceImpl extends BaseAgentInstanceResourceImpl {
 	}
 
 	@Override
-	public AgentInstance postAgentInstanceUserInput(
-			Long workflowInstanceId, AgentInstance agentInstance)
+	public void postAgentInstanceResume(
+			Long agentInstanceId, AgentInstance agentInstance)
 		throws Exception {
 
 		if (!FeatureFlagManagerUtil.isEnabled(
@@ -151,9 +151,7 @@ public class AgentInstanceResourceImpl extends BaseAgentInstanceResourceImpl {
 				"Liferay-AI-Hub-Cell-On-Behalf-Of")
 		).build();
 
-		_defaultAgent.resume(agentContext, workflowInstanceId);
-
-		return new AgentInstance();
+		_defaultAgent.resume(agentContext, agentInstanceId);
 	}
 
 	@Reference
