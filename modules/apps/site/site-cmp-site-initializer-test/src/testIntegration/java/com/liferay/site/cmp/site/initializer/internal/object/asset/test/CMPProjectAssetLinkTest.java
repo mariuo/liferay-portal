@@ -13,6 +13,8 @@ import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.object.service.ObjectEntryLocalService;
 import com.liferay.object.service.ObjectRelationshipLocalService;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
+import com.liferay.portal.kernel.exception.ModelListenerException;
+import com.liferay.portal.kernel.test.AssertUtils;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
@@ -59,6 +61,26 @@ public class CMPProjectAssetLinkTest {
 	}
 
 	@Test
+	public void testAddDuplicateProjectAssetLinkFails() throws Exception {
+		ObjectEntry projectObjectEntry = CMPTestUtil.addProjectObjectEntry();
+
+		String className = RandomTestUtil.randomString();
+		String classExternalReferenceCode = RandomTestUtil.randomString();
+		String scopeKey = RandomTestUtil.randomString();
+
+		_addProjectAssetLinkObjectEntry(
+			projectObjectEntry, className, classExternalReferenceCode,
+			scopeKey);
+
+		AssertUtils.assertFailure(
+			ModelListenerException.class,
+			"This asset is already linked to this project",
+			() -> _addProjectAssetLinkObjectEntry(
+				projectObjectEntry, className, classExternalReferenceCode,
+				scopeKey));
+	}
+
+	@Test
 	public void testAddProjectAssetLink() throws Exception {
 		ObjectEntry projectObjectEntry = CMPTestUtil.addProjectObjectEntry();
 
@@ -86,6 +108,22 @@ public class CMPProjectAssetLinkTest {
 		Assert.assertEquals(
 			projectAssetLinkObjectEntries.toString(), 1,
 			projectAssetLinkObjectEntries.size());
+	}
+
+	@Test
+	public void testAddSameAssetToDifferentProjects() throws Exception {
+		String className = RandomTestUtil.randomString();
+		String classExternalReferenceCode = RandomTestUtil.randomString();
+		String scopeKey = RandomTestUtil.randomString();
+
+		_addProjectAssetLinkObjectEntry(
+			CMPTestUtil.addProjectObjectEntry(), className,
+			classExternalReferenceCode, scopeKey);
+
+		Assert.assertNotNull(
+			_addProjectAssetLinkObjectEntry(
+				CMPTestUtil.addProjectObjectEntry(), className,
+				classExternalReferenceCode, scopeKey));
 	}
 
 	@Test
