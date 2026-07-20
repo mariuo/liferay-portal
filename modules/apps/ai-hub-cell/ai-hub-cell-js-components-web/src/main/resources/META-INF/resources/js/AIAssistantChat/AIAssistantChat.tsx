@@ -29,6 +29,7 @@ import {
 import AIAssistantFooterDisclaimer from './components/AIAssistantFooterDisclaimer';
 import AIAssistantMessageBalloon from './components/AIAssistantMessageBalloon';
 import CategorizationMessageBalloon from './components/CategorizationMessageBalloon';
+import ImageContextMessageBalloon from './components/ImageContextMessageBalloon';
 import TranslationsMessageBalloon from './components/TranslationsMessageBalloon';
 import UserMessageBalloon from './components/UserMessageBalloon';
 
@@ -38,6 +39,7 @@ interface message {
 	agentDefinitionExternalReferenceCodes?: string[];
 	categorization?: CategorizeEventPayload;
 	error?: boolean;
+	images?: string[];
 	sender: string;
 	text: string;
 }
@@ -256,6 +258,53 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 					try {
 						const dataJSON = JSON.parse(event.data);
 
+						if (dataJSON['type'] === 'image') {
+							const image = `data:${
+								dataJSON['mimeType'] ?? 'image/png'
+							};base64,${dataJSON['data']}`;
+
+							setMessages((previousMessages) => {
+								setTimeout(() => {
+									messagesEndRef.current?.scrollIntoView({
+										behavior: 'smooth',
+									});
+								}, 0);
+
+								const lastMessage =
+									previousMessages[
+										previousMessages.length - 1
+									];
+
+								if (
+									lastMessage?.sender === 'assistant' &&
+									lastMessage.images?.length &&
+									!lastMessage.text
+								) {
+									return [
+										...previousMessages.slice(0, -1),
+										{
+											...lastMessage,
+											images: [
+												...lastMessage.images,
+												image,
+											],
+										},
+									];
+								}
+
+								return [
+									...previousMessages,
+									{
+										sender: 'assistant',
+										text: '',
+										images: [image],
+									},
+								];
+							});
+
+							return;
+						}
+
 						setMessages((previousMessages) => {
 							setTimeout(() => {
 								messagesEndRef.current?.scrollIntoView({
@@ -440,6 +489,26 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 						);
 					}
 
+					if (item.images?.length) {
+						return (
+							<div
+								className="ai-assistant-chat__ai-assistant-message-balloon d-flex flex-column mb-2 p-2 rounded"
+								key={`${index}-${item.images.length}`}
+							>
+								{item.images.map((image, imageIndex) => (
+									<img
+										alt={Liferay.Language.get(
+											'generated-image'
+										)}
+										className="mb-2 rounded w-100"
+										key={imageIndex}
+										src={image}
+									/>
+								))}
+							</div>
+						);
+					}
+
 					try {
 						const json = JSON.parse(
 							item.text
@@ -448,6 +517,23 @@ const AIAssistantChat: React.FC<AIAssistantChatProps> = ({
 								.replace(/```$/, '')
 								.trim()
 						);
+
+						if (json?.action === 'generateImage') {
+							const {agentInstanceId, availableStyles} = json;
+
+							return (
+								<ImageContextMessageBalloon
+									availableStyles={availableStyles}
+									key={index}
+									onSubmit={(context) =>
+										handleUserInput(
+											agentInstanceId,
+											context
+										)
+									}
+								/>
+							);
+						}
 
 						if (json?.action === 'autoTranslate') {
 							const {
