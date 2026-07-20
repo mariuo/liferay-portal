@@ -5,14 +5,22 @@
 
 import {NetworkStatus} from '@clayui/data-provider';
 import ClayMultiSelect from '@clayui/multi-select';
+import {openToast} from 'frontend-js-components-web';
 import React, {useEffect, useState} from 'react';
 
 import ApiHelper from '../../../common/services/ApiHelper';
-import {Space as Project} from '../../../common/types/Space';
 
-export type ProjectLink = {
+type Project = {
+	id: number;
 	name: string;
 	scopeKey: string;
+};
+
+type ProjectLink = {
+	linkId: number;
+	projectId: number;
+	projectName: string;
+	projectScopeKey: string;
 };
 
 type ProjectItem = {
@@ -20,48 +28,230 @@ type ProjectItem = {
 	value: string;
 };
 
-type Props = {
-	onUpdateProjectLinks: (projectLinks: ProjectLink[]) => void;
-	projectLinks: ProjectLink[];
+type ProjectSearchItem = {
+	embedded: {
+		externalReferenceCode: string;
+		id: number;
+		scopeKey: string;
+		title: string;
+	};
 };
 
+type ProjectAssetLinkSearchItem = {
+	embedded: {
+		classExternalReferenceCode: string;
+		className: string;
+		id: number;
+		r_cmpProjectAssetLinks_c_cmpProjectId: number;
+		scopeKey: string;
+	};
+};
+
+type Props = {
+	cmpProjectAssetRelationshipObjectDefinitionId: number | null;
+	cmpProjectObjectDefinitionId: number | null;
+	entryClassName: string;
+	entryExternalReferenceCode: string;
+	entryScopeKey: string;
+};
+
+function buildSearchURL(objectDefinitionId: number) {
+	return `/o/search/v1.0/search?emptySearch=true&nestedFields=embedded&pageSize=-1&filter=${encodeURIComponent(
+		`objectDefinitionId eq ${objectDefinitionId}`
+	)}`;
+}
+
 export default function ProjectsPanel({
-	onUpdateProjectLinks,
-	projectLinks,
+	cmpProjectAssetRelationshipObjectDefinitionId,
+	cmpProjectObjectDefinitionId,
+	entryClassName,
+	entryExternalReferenceCode,
+	entryScopeKey,
 }: Props) {
 	const [query, setQuery] = useState('');
-	const [sourceProjects, setSourceProjects] = useState<ProjectLink[]>([]);
+	const [sourceProjects, setSourceProjects] = useState<Project[]>([]);
+	const [selectedLinks, setSelectedLinks] = useState<ProjectLink[]>([]);
 
 	useEffect(() => {
-		ApiHelper.getAll<Project>({
-			filter: "type eq 'Project'",
-			url: '/o/headless-asset-library/v1.0/asset-libraries',
-		})
-			.then((response) =>
+		if (!cmpProjectObjectDefinitionId) {
+			return;
+		}
+
+		ApiHelper.get<{items: ProjectSearchItem[]}>(
+			buildSearchURL(cmpProjectObjectDefinitionId)
+		)
+			.then(({data, error}) => {
+				if (error || !data) {
+					throw new Error(error || 'error');
+				}
+
 				setSourceProjects(
-					response.map((project) => ({
-						name: project.name,
-						scopeKey: project.assetLibraryKey,
+					data.items.map(({embedded}) => ({
+						id: embedded.id,
+						name: embedded.title,
+						scopeKey: embedded.scopeKey,
 					}))
-				)
-			)
+				);
+			})
 			.catch((error) => console.error(error));
-	}, []);
+	}, [cmpProjectObjectDefinitionId]);
+
+	useEffect(() => {
+		if (
+			!cmpProjectAssetRelationshipObjectDefinitionId ||
+			!sourceProjects.length
+		) {
+			return;
+		}
+
+		ApiHelper.get<{items: ProjectAssetLinkSearchItem[]}>(
+			buildSearchURL(cmpProjectAssetRelationshipObjectDefinitionId)
+		)
+			.then(({data, error}) => {
+				if (error || !data) {
+					throw new Error(error || 'error');
+				}
+
+				const links: ProjectLink[] = [];
+
+				data.items.forEach(({embedded}) => {
+					if (
+						embedded.className !== entryClassName ||
+						embedded.classExternalReferenceCode !==
+							entryExternalReferenceCode ||
+						embedded.scopeKey !== entryScopeKey
+					) {
+						return;
+					}
+
+					const project = sourceProjects.find(
+						(sourceProject) =>
+							sourceProject.id ===
+							embedded.r_cmpProjectAssetLinks_c_cmpProjectId
+					);
+
+					if (!project) {
+						return;
+					}
+
+					links.push({
+						linkId: embedded.id,
+						projectId: project.id,
+						projectName: project.name,
+						projectScopeKey: project.scopeKey,
+					});
+				});
+
+				setSelectedLinks(links);
+			})
+			.catch((error) => console.error(error));
+	}, [
+		cmpProjectAssetRelationshipObjectDefinitionId,
+		entryClassName,
+		entryExternalReferenceCode,
+		entryScopeKey,
+		sourceProjects,
+	]);
+
+	const onItemsChange = async (items: ProjectItem[]) => {
+		const selectedProjectIds = new Set(
+			items.map((item) => Number(item.value))
+		);
+
+		const addedProjects = sourceProjects.filter(
+			(project) =>
+				selectedProjectIds.has(project.id) &&
+				!selectedLinks.some((link) => link.projectId === project.id)
+		);
+
+		const removedLinks = selectedLinks.filter(
+			(link) => !selectedProjectIds.has(link.projectId)
+		);
+
+		if (!addedProjects.length && !removedLinks.length) {
+			return;
+		}
+
+		const addResults = await Promise.all(
+			addedProjects.map((project) =>
+				ApiHelper.post<{externalReferenceCode: string; id: number}>(
+					`/o/cmp/project-asset-relationships/scopes/${project.scopeKey}`,
+					{
+						classExternalReferenceCode: entryExternalReferenceCode,
+						className: entryClassName,
+						r_cmpProjectAssetLinks_c_cmpProjectId: project.id,
+						scopeKey: entryScopeKey,
+					}
+				).then((result) => ({project, result}))
+			)
+		);
+
+		const removeResults = await Promise.all(
+			removedLinks.map((link) =>
+				ApiHelper.delete(
+					`/o/cmp/project-asset-relationships/${link.linkId}`
+				).then((result) => ({link, result}))
+			)
+		);
+
+		let nextLinks = [...selectedLinks];
+		let hasError = false;
+
+		addResults.forEach(({project, result}) => {
+			if (result.error || !result.data) {
+				hasError = true;
+
+				return;
+			}
+
+			nextLinks.push({
+				linkId: result.data.id,
+				projectId: project.id,
+				projectName: project.name,
+				projectScopeKey: project.scopeKey,
+			});
+		});
+
+		removeResults.forEach(({link, result}) => {
+			if (result.error) {
+				hasError = true;
+
+				return;
+			}
+
+			nextLinks = nextLinks.filter(
+				(nextLink) => nextLink.linkId !== link.linkId
+			);
+		});
+
+		setSelectedLinks(nextLinks);
+
+		openToast({
+			message: hasError
+				? Liferay.Language.get('an-unexpected-error-occurred')
+				: Liferay.Language.get('your-request-completed-successfully'),
+			type: hasError ? 'danger' : 'success',
+		});
+	};
 
 	const sourceItems: ProjectItem[] = sourceProjects.map((project) => ({
 		label: project.name,
-		value: project.scopeKey,
+		value: String(project.id),
 	}));
 
-	const selectedItems: ProjectItem[] = projectLinks.map((projectLink) => ({
-		label: projectLink.name,
-		value: projectLink.scopeKey,
+	const selectedItems: ProjectItem[] = selectedLinks.map((link) => ({
+		label: link.projectName,
+		value: String(link.projectId),
 	}));
+
+	if (!cmpProjectObjectDefinitionId) {
+		return null;
+	}
 
 	return (
 		<div className="p-3">
 			<label htmlFor="cmpProjectsMultiSelect">
-				{Liferay.Language.get('project')}
+				{Liferay.Language.get('projects')}
 			</label>
 
 			<ClayMultiSelect
@@ -73,15 +263,7 @@ export default function ProjectsPanel({
 					sourceItems.length ? undefined : NetworkStatus.Polling
 				}
 				onChange={setQuery}
-				onItemsChange={(items: ProjectItem[]) =>
-					onUpdateProjectLinks(
-						sourceProjects.filter((project) =>
-							items.some(
-								(item) => item.value === project.scopeKey
-							)
-						)
-					)
-				}
+				onItemsChange={onItemsChange}
 				sourceItems={sourceItems}
 				value={query}
 			>

@@ -29,6 +29,8 @@ const renderComponent = ({isSubscribed = false} = {}) => {
 			addCommentURL="addCommentURL"
 			assetLibraryId="123"
 			assetType={30982}
+			cmpProjectAssetRelationshipObjectDefinitionId={null}
+			cmpProjectObjectDefinitionId={null}
 			cmsGroupId="21000"
 			comments={[]}
 			contentAPIURL="contentAPIURL"
@@ -36,6 +38,8 @@ const renderComponent = ({isSubscribed = false} = {}) => {
 			editCommentURL="editCommentURL"
 			editorConfig={{}}
 			entryClassName=""
+			entryExternalReferenceCode=""
+			entryScopeKey=""
 			expirationDate={EXPIRATION_DATE}
 			getCommentsURL="getCommentsURL"
 			hasUpdatePermission={true}

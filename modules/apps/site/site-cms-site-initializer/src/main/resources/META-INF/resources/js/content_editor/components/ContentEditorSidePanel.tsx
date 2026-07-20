@@ -25,13 +25,15 @@ import {dateConfig, toMomentDate, toServerISOFormat} from './ScheduleField';
 import CategorizationPanel from './panels/CategorizationPanel';
 import CommentsPanel from './panels/CommentsPanel';
 import GeneralPanel from './panels/GeneralPanel';
-import ProjectsPanel, {ProjectLink} from './panels/ProjectsPanel';
+import ProjectsPanel from './panels/ProjectsPanel';
 import SchedulePanel from './panels/SchedulePanel';
 
 type Props = {
 	addCommentURL: string;
 	assetLibraryId: string;
 	assetType: number;
+	cmpProjectAssetRelationshipObjectDefinitionId: number | null;
+	cmpProjectObjectDefinitionId: number | null;
 	cmsGroupId: string;
 	comments: Comment[];
 	contentAPIURL: string;
@@ -39,6 +41,8 @@ type Props = {
 	editCommentURL: string;
 	editorConfig: LiferayEditorConfig;
 	entryClassName: string;
+	entryExternalReferenceCode: string;
+	entryScopeKey: string;
 	expirationDate: string;
 	getCommentsURL: string;
 	hasUpdatePermission: boolean;
@@ -54,9 +58,7 @@ type SidePanelProps = Props & {
 	categorizationFields: CategorizationFields | null;
 	dateConfig: datetimeUtils.DateConfig;
 	onUpdateCategorization: (props: UpdateCategorizationProps) => void;
-	onUpdateProjectLinks: (projectLinks: ProjectLink[]) => void;
 	onUpdateSchedule: (props: UpdateScheduleProps) => void;
-	projectLinks: ProjectLink[];
 	requiredVocabularyIds: number[] | null;
 	scheduleFields: ScheduleFields;
 };
@@ -161,7 +163,6 @@ export default function ContentEditorSidePanel(props: Props) {
 	});
 	const [categorizationFields, setCategorizationFields] =
 		useState<CategorizationFields | null>(null);
-	const [projectLinks, setProjectLinks] = useState<ProjectLink[]>([]);
 	const [requiredVocabularyIds, setRequiredVocabularyIds] = useState<
 		number[] | null
 	>(null);
@@ -291,9 +292,7 @@ export default function ContentEditorSidePanel(props: Props) {
 				categorizationFields={categorizationFields}
 				dateConfig={dateConfig}
 				onUpdateCategorization={onUpdateCategorization}
-				onUpdateProjectLinks={setProjectLinks}
 				onUpdateSchedule={onUpdateSchedule}
-				projectLinks={projectLinks}
 				requiredVocabularyIds={requiredVocabularyIds}
 				scheduleFields={scheduleFields}
 			/>
@@ -320,13 +319,6 @@ export default function ContentEditorSidePanel(props: Props) {
 						/>
 					)
 				)}
-
-			<input
-				form={formId}
-				name="cmpProjectAssetLinks"
-				type="hidden"
-				value={projectLinks.map(({scopeKey}) => scopeKey).join(',')}
-			/>
 		</>
 	);
 }
