@@ -55,10 +55,38 @@ type Props = {
 	entryScopeKey: string;
 };
 
-function buildSearchURL(objectDefinitionId: number) {
-	return `/o/search/v1.0/search?emptySearch=true&nestedFields=embedded&pageSize=-1&filter=${encodeURIComponent(
+function buildSearchURL(objectDefinitionId: number, page: number) {
+	return `/o/search/v1.0/search?emptySearch=true&nestedFields=embedded&page=${page}&pageSize=500&filter=${encodeURIComponent(
 		`objectDefinitionId eq ${objectDefinitionId}`
 	)}`;
+}
+
+// /o/search clamps pageSize to 500, so page through every result rather than
+// reading only the first page.
+
+async function fetchAllSearchItems<T>(objectDefinitionId: number) {
+	const items: T[] = [];
+
+	let lastPage = 1;
+	let page = 1;
+
+	while (page <= lastPage) {
+		const {data, error} = await ApiHelper.get<{
+			items: T[];
+			lastPage: number;
+		}>(buildSearchURL(objectDefinitionId, page));
+
+		if (error || !data) {
+			throw new Error(error || 'error');
+		}
+
+		items.push(...data.items);
+
+		lastPage = data.lastPage;
+		page += 1;
+	}
+
+	return items;
 }
 
 export default function ProjectsPanel({
@@ -77,22 +105,16 @@ export default function ProjectsPanel({
 			return;
 		}
 
-		ApiHelper.get<{items: ProjectSearchItem[]}>(
-			buildSearchURL(cmpProjectObjectDefinitionId)
-		)
-			.then(({data, error}) => {
-				if (error || !data) {
-					throw new Error(error || 'error');
-				}
-
+		fetchAllSearchItems<ProjectSearchItem>(cmpProjectObjectDefinitionId)
+			.then((searchItems) =>
 				setSourceProjects(
-					data.items.map(({embedded}) => ({
+					searchItems.map(({embedded}) => ({
 						id: embedded.id,
 						name: embedded.title,
 						scopeKey: embedded.scopeKey,
 					}))
-				);
-			})
+				)
+			)
 			.catch((error) => console.error(error));
 	}, [cmpProjectObjectDefinitionId]);
 
@@ -104,17 +126,13 @@ export default function ProjectsPanel({
 			return;
 		}
 
-		ApiHelper.get<{items: ProjectAssetLinkSearchItem[]}>(
-			buildSearchURL(cmpProjectAssetRelationshipObjectDefinitionId)
+		fetchAllSearchItems<ProjectAssetLinkSearchItem>(
+			cmpProjectAssetRelationshipObjectDefinitionId
 		)
-			.then(({data, error}) => {
-				if (error || !data) {
-					throw new Error(error || 'error');
-				}
-
+			.then((searchItems) => {
 				const links: ProjectLink[] = [];
 
-				data.items.forEach(({embedded}) => {
+				searchItems.forEach(({embedded}) => {
 					if (
 						embedded.className !== entryClassName ||
 						embedded.classExternalReferenceCode !==
