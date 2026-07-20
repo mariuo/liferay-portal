@@ -99,17 +99,20 @@ function mockSearch({linkItems = []}: {linkItems?: any[]} = {}) {
 				String(PROJECT_ASSET_RELATIONSHIP_OBJECT_DEFINITION_ID)
 			)
 		) {
-			return Promise.resolve({data: {items: linkItems}, error: null});
-		}
-
-		if (url.includes(String(PROJECT_OBJECT_DEFINITION_ID))) {
 			return Promise.resolve({
-				data: {items: projectSearchItems},
+				data: {items: linkItems, lastPage: 1},
 				error: null,
 			});
 		}
 
-		return Promise.resolve({data: {items: []}, error: null});
+		if (url.includes(String(PROJECT_OBJECT_DEFINITION_ID))) {
+			return Promise.resolve({
+				data: {items: projectSearchItems, lastPage: 1},
+				error: null,
+			});
+		}
+
+		return Promise.resolve({data: {items: [], lastPage: 1}, error: null});
 	});
 }
 
@@ -213,6 +216,51 @@ describe('ProjectsPanel', () => {
 		);
 
 		expect(screen.queryByTestId('remove-1')).not.toBeInTheDocument();
+	});
+
+	it('pages through every result when the search is truncated', async () => {
+		(ApiHelper.get as jest.Mock).mockImplementation((url: string) => {
+			if (url.includes(String(PROJECT_OBJECT_DEFINITION_ID))) {
+				return Promise.resolve({
+					data: {items: projectSearchItems, lastPage: 1},
+					error: null,
+				});
+			}
+
+			// The link that matches the asset is only on the second page.
+
+			if (url.includes('page=1')) {
+				return Promise.resolve({
+					data: {items: [], lastPage: 2},
+					error: null,
+				});
+			}
+
+			return Promise.resolve({
+				data: {
+					items: [
+						{
+							embedded: {
+								classExternalReferenceCode:
+									ENTRY_EXTERNAL_REFERENCE_CODE,
+								className: ENTRY_CLASS_NAME,
+								id: 500,
+								r_cmpProjectAssetLinks_c_cmpProjectId: 1,
+								scopeKey: ENTRY_SCOPE_KEY,
+							},
+						},
+					],
+					lastPage: 2,
+				},
+				error: null,
+			});
+		});
+
+		renderComponent();
+
+		await waitFor(() =>
+			expect(screen.getByTestId('remove-1')).toBeInTheDocument()
+		);
 	});
 
 	it('creates a link when a project is selected', async () => {
