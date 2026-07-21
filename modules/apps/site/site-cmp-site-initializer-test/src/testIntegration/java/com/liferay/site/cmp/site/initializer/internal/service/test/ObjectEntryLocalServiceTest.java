@@ -73,7 +73,8 @@ public class ObjectEntryLocalServiceTest {
 
 	private ObjectEntry _addProjectAssetRelationshipObjectEntry(
 			ObjectEntry projectObjectEntry, String className,
-			String classExternalReferenceCode, String scopeKey)
+			String classExternalReferenceCode,
+			String groupExternalReferenceCode)
 		throws Exception {
 
 		ObjectDefinition objectDefinition =
@@ -90,10 +91,10 @@ public class ObjectEntryLocalServiceTest {
 			).put(
 				"className", className
 			).put(
+				"groupExternalReferenceCode", groupExternalReferenceCode
+			).put(
 				"r_cmpProjectToCMPProjectAssetRelationships_c_cmpProjectId",
 				projectObjectEntry.getObjectEntryId()
-			).put(
-				"scopeKey", scopeKey
 			).build(),
 			ServiceContextTestUtil.getServiceContext());
 	}

@@ -42,7 +42,7 @@ type Props = {
 	editorConfig: LiferayEditorConfig;
 	entryClassName: string;
 	entryExternalReferenceCode: string;
-	entryScopeKey: string;
+	entryGroupExternalReferenceCode: string;
 	expirationDate: string;
 	getCommentsURL: string;
 	hasUpdatePermission: boolean;

@@ -267,7 +267,7 @@ public class ContentEditorSidePanelComponentSectionFragmentRenderer
 		).put(
 			"entryExternalReferenceCode", objectEntry.getExternalReferenceCode()
 		).put(
-			"entryScopeKey",
+			"entryGroupExternalReferenceCode",
 			() -> {
 				Group group = groupLocalService.fetchGroup(
 					objectEntry.getGroupId());

@@ -125,7 +125,7 @@ function renderComponent(props = {}) {
 			cmpProjectObjectDefinitionId={PROJECT_OBJECT_DEFINITION_ID}
 			entryClassName={ENTRY_CLASS_NAME}
 			entryExternalReferenceCode={ENTRY_EXTERNAL_REFERENCE_CODE}
-			entryScopeKey={ENTRY_SCOPE_KEY}
+			entryGroupExternalReferenceCode={ENTRY_SCOPE_KEY}
 			{...props}
 		/>
 	);
@@ -175,9 +175,9 @@ describe('ProjectsPanel', () => {
 						classExternalReferenceCode:
 							ENTRY_EXTERNAL_REFERENCE_CODE,
 						className: ENTRY_CLASS_NAME,
+						groupExternalReferenceCode: ENTRY_SCOPE_KEY,
 						id: 500,
 						r_cmpProjectToCMPProjectAssetRelationships_c_cmpProjectId: 1,
-						scopeKey: ENTRY_SCOPE_KEY,
 					},
 				},
 			],
@@ -199,9 +199,9 @@ describe('ProjectsPanel', () => {
 					embedded: {
 						classExternalReferenceCode: 'OTHER-ASSET-ERC',
 						className: ENTRY_CLASS_NAME,
+						groupExternalReferenceCode: ENTRY_SCOPE_KEY,
 						id: 500,
 						r_cmpProjectToCMPProjectAssetRelationships_c_cmpProjectId: 1,
-						scopeKey: ENTRY_SCOPE_KEY,
 					},
 				},
 			],
@@ -244,9 +244,9 @@ describe('ProjectsPanel', () => {
 								classExternalReferenceCode:
 									ENTRY_EXTERNAL_REFERENCE_CODE,
 								className: ENTRY_CLASS_NAME,
+								groupExternalReferenceCode: ENTRY_SCOPE_KEY,
 								id: 500,
 								r_cmpProjectToCMPProjectAssetRelationships_c_cmpProjectId: 1,
-								scopeKey: ENTRY_SCOPE_KEY,
 							},
 						},
 					],
@@ -285,8 +285,8 @@ describe('ProjectsPanel', () => {
 				{
 					classExternalReferenceCode: ENTRY_EXTERNAL_REFERENCE_CODE,
 					className: ENTRY_CLASS_NAME,
+					groupExternalReferenceCode: ENTRY_SCOPE_KEY,
 					r_cmpProjectToCMPProjectAssetRelationships_c_cmpProjectId: 2,
-					scopeKey: ENTRY_SCOPE_KEY,
 				}
 			)
 		);
@@ -306,9 +306,9 @@ describe('ProjectsPanel', () => {
 						classExternalReferenceCode:
 							ENTRY_EXTERNAL_REFERENCE_CODE,
 						className: ENTRY_CLASS_NAME,
+						groupExternalReferenceCode: ENTRY_SCOPE_KEY,
 						id: 500,
 						r_cmpProjectToCMPProjectAssetRelationships_c_cmpProjectId: 1,
-						scopeKey: ENTRY_SCOPE_KEY,
 					},
 				},
 			],

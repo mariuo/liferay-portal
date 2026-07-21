@@ -24,7 +24,7 @@
 			"enableObjectEntryHistory": true,
 			"enableObjectEntrySchedule": true,
 			"enableObjectEntrySubscription": true,
-				"externalReferenceCode": "L_CMP_PROJECT",
+			"externalReferenceCode": "L_CMP_PROJECT",
 			"label": {
 				"en_US": "Project"
 			},
@@ -697,13 +697,13 @@
 				{
 					"DBType": "String",
 					"businessType": "Text",
-					"externalReferenceCode": "SCOPE_KEY",
+					"externalReferenceCode": "GROUP_EXTERNAL_REFERENCE_CODE",
 					"indexed": true,
 					"indexedAsKeyword": true,
 					"label": {
-						"en_US": "Scope Key"
+						"en_US": "Group External Reference Code"
 					},
-					"name": "scopeKey",
+					"name": "groupExternalReferenceCode",
 					"required": true,
 					"system": true
 				}
@@ -732,7 +732,7 @@
 						},
 						{
 							"name": "compositeKeyObjectFieldExternalReferenceCode",
-							"value": "SCOPE_KEY"
+							"value": "GROUP_EXTERNAL_REFERENCE_CODE"
 						}
 					],
 					"outputType": "fullValidation",

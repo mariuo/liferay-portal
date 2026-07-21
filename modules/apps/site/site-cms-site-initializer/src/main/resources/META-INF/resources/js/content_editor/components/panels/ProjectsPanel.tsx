@@ -41,9 +41,9 @@ type ProjectAssetRelationshipSearchItem = {
 	embedded: {
 		classExternalReferenceCode: string;
 		className: string;
+		groupExternalReferenceCode: string;
 		id: number;
 		r_cmpProjectToCMPProjectAssetRelationships_c_cmpProjectId: number;
-		scopeKey: string;
 	};
 };
 
@@ -52,7 +52,7 @@ type Props = {
 	cmpProjectObjectDefinitionId: number | null;
 	entryClassName: string;
 	entryExternalReferenceCode: string;
-	entryScopeKey: string;
+	entryGroupExternalReferenceCode: string;
 };
 
 function buildSearchURL(objectDefinitionId: number, page: number) {
@@ -94,7 +94,7 @@ export default function ProjectsPanel({
 	cmpProjectObjectDefinitionId,
 	entryClassName,
 	entryExternalReferenceCode,
-	entryScopeKey,
+	entryGroupExternalReferenceCode,
 }: Props) {
 	const [query, setQuery] = useState('');
 	const [sourceProjects, setSourceProjects] = useState<Project[]>([]);
@@ -137,7 +137,8 @@ export default function ProjectsPanel({
 						embedded.className !== entryClassName ||
 						embedded.classExternalReferenceCode !==
 							entryExternalReferenceCode ||
-						embedded.scopeKey !== entryScopeKey
+						embedded.groupExternalReferenceCode !==
+							entryGroupExternalReferenceCode
 					) {
 						return;
 					}
@@ -167,7 +168,7 @@ export default function ProjectsPanel({
 		cmpProjectAssetRelationshipObjectDefinitionId,
 		entryClassName,
 		entryExternalReferenceCode,
-		entryScopeKey,
+		entryGroupExternalReferenceCode,
 		sourceProjects,
 	]);
 
@@ -197,9 +198,10 @@ export default function ProjectsPanel({
 					{
 						classExternalReferenceCode: entryExternalReferenceCode,
 						className: entryClassName,
+						groupExternalReferenceCode:
+							entryGroupExternalReferenceCode,
 						r_cmpProjectToCMPProjectAssetRelationships_c_cmpProjectId:
 							project.id,
-						scopeKey: entryScopeKey,
 					}
 				).then((result) => ({project, result}))
 			)

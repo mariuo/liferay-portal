@@ -81,10 +81,10 @@ public class ObjectEntryResourceTest {
 		).put(
 			"className", RandomTestUtil.randomString()
 		).put(
+			"groupExternalReferenceCode", RandomTestUtil.randomString()
+		).put(
 			"r_cmpProjectToCMPProjectAssetRelationships_c_cmpProjectId",
 			projectJSONObject.getLong("id")
-		).put(
-			"scopeKey", RandomTestUtil.randomString()
 		).toString();
 
 		String restContextPath =
@@ -180,12 +180,12 @@ public class ObjectEntryResourceTest {
 
 		String className = RandomTestUtil.randomString();
 		String classExternalReferenceCode = RandomTestUtil.randomString();
-		String scopeKey = RandomTestUtil.randomString();
+		String groupExternalReferenceCode = RandomTestUtil.randomString();
 
 		JSONObject projectAssetRelationshipJSONObject =
 			_addProjectAssetRelationship(
 				projectJSONObject, className, classExternalReferenceCode,
-				scopeKey);
+				groupExternalReferenceCode);
 
 		Assert.assertEquals(
 			className,
@@ -195,7 +195,9 @@ public class ObjectEntryResourceTest {
 			projectAssetRelationshipJSONObject.getString(
 				"classExternalReferenceCode"));
 		Assert.assertEquals(
-			scopeKey, projectAssetRelationshipJSONObject.getString("scopeKey"));
+			groupExternalReferenceCode,
+			projectAssetRelationshipJSONObject.getString(
+				"groupExternalReferenceCode"));
 		Assert.assertEquals(
 			projectJSONObject.getLong("id"),
 			projectAssetRelationshipJSONObject.getLong(
@@ -211,7 +213,7 @@ public class ObjectEntryResourceTest {
 
 		String className = RandomTestUtil.randomString();
 		String classExternalReferenceCode = RandomTestUtil.randomString();
-		String scopeKey = RandomTestUtil.randomString();
+		String groupExternalReferenceCode = RandomTestUtil.randomString();
 
 		JSONObject projectJSONObject1 = HTTPTestUtil.invokeToJSONObject(
 			JSONUtil.put(
@@ -221,7 +223,7 @@ public class ObjectEntryResourceTest {
 
 		_addProjectAssetRelationship(
 			projectJSONObject1, className, classExternalReferenceCode,
-			scopeKey);
+			groupExternalReferenceCode);
 
 		JSONObject projectJSONObject2 = HTTPTestUtil.invokeToJSONObject(
 			JSONUtil.put(
@@ -232,7 +234,7 @@ public class ObjectEntryResourceTest {
 		JSONObject projectAssetRelationshipJSONObject =
 			_addProjectAssetRelationship(
 				projectJSONObject2, className, classExternalReferenceCode,
-				scopeKey);
+				groupExternalReferenceCode);
 
 		Assert.assertEquals(
 			projectJSONObject2.getLong("id"),
@@ -242,7 +244,8 @@ public class ObjectEntryResourceTest {
 
 	private JSONObject _addProjectAssetRelationship(
 			JSONObject projectJSONObject, String className,
-			String classExternalReferenceCode, String scopeKey)
+			String classExternalReferenceCode,
+			String groupExternalReferenceCode)
 		throws Exception {
 
 		return HTTPTestUtil.invokeToJSONObject(
@@ -251,10 +254,10 @@ public class ObjectEntryResourceTest {
 			).put(
 				"className", className
 			).put(
+				"groupExternalReferenceCode", groupExternalReferenceCode
+			).put(
 				"r_cmpProjectToCMPProjectAssetRelationships_c_cmpProjectId",
 				projectJSONObject.getLong("id")
-			).put(
-				"scopeKey", scopeKey
 			).toString(),
 			_projectAssetRelationshipObjectDefinition.getRESTContextPath() +
 				"/scopes/" + projectJSONObject.getLong("scopeId"),

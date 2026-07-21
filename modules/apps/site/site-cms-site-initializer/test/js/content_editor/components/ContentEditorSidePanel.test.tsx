@@ -39,7 +39,7 @@ const renderComponent = ({isSubscribed = false} = {}) => {
 			editorConfig={{}}
 			entryClassName=""
 			entryExternalReferenceCode=""
-			entryScopeKey=""
+			entryGroupExternalReferenceCode=""
 			expirationDate={EXPIRATION_DATE}
 			getCommentsURL="getCommentsURL"
 			hasUpdatePermission={true}
