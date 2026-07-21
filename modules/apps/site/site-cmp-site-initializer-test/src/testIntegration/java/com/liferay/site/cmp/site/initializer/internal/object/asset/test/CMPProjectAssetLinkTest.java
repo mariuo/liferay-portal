@@ -6,6 +6,7 @@
 package com.liferay.site.cmp.site.initializer.internal.object.asset.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
+import com.liferay.object.exception.ObjectValidationRuleEngineException;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectEntry;
 import com.liferay.object.model.ObjectRelationship;
@@ -13,7 +14,6 @@ import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.object.service.ObjectEntryLocalService;
 import com.liferay.object.service.ObjectRelationshipLocalService;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
-import com.liferay.portal.kernel.exception.ModelListenerException;
 import com.liferay.portal.kernel.test.AssertUtils;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
@@ -73,8 +73,8 @@ public class CMPProjectAssetLinkTest {
 			scopeKey);
 
 		AssertUtils.assertFailure(
-			ModelListenerException.class,
-			"This asset is already linked to this project",
+			ObjectValidationRuleEngineException.class,
+			"This asset is already linked to this project.",
 			() -> _addProjectAssetLinkObjectEntry(
 				projectObjectEntry, className, classExternalReferenceCode,
 				scopeKey));
