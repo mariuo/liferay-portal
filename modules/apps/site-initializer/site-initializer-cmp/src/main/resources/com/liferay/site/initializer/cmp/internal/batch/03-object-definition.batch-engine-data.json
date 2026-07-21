@@ -709,6 +709,36 @@
 				}
 			],
 			"objectFolderExternalReferenceCode": "L_CMP_PROJECT_MANAGEMENT_DEFINITIONS",
+			"objectValidationRules": [
+				{
+					"active": true,
+					"engine": "compositeKey",
+					"errorLabel": {
+						"en_US": "This asset is already linked to this project."
+					},
+					"externalReferenceCode": "L_CMP_PROJECT_ASSET_RELATIONSHIP_UNIQUE",
+					"name": {
+						"en_US": "Unique Project Asset Link"
+					},
+					"objectDefinitionExternalReferenceCode": "L_CMP_PROJECT_ASSET_RELATIONSHIP",
+					"objectValidationRuleSettings": [
+						{
+							"name": "compositeKeyObjectFieldExternalReferenceCode",
+							"value": "CLASS_NAME"
+						},
+						{
+							"name": "compositeKeyObjectFieldExternalReferenceCode",
+							"value": "CLASS_EXTERNAL_REFERENCE_CODE"
+						},
+						{
+							"name": "compositeKeyObjectFieldExternalReferenceCode",
+							"value": "SCOPE_KEY"
+						}
+					],
+					"outputType": "fullValidation",
+					"system": true
+				}
+			],
 			"panelCategoryKey": "",
 			"pluralLabel": {
 				"en_US": "Project Asset Relationships"
