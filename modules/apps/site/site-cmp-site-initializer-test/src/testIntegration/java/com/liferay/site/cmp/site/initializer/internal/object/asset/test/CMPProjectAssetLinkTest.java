@@ -162,7 +162,7 @@ public class CMPProjectAssetLinkTest {
 			).put(
 				"className", className
 			).put(
-				"r_cmpProjectAssetLinks_c_cmpProjectId",
+				"r_cmpProjectToCMPProjectAssetRelationships_c_cmpProjectId",
 				projectObjectEntry.getObjectEntryId()
 			).put(
 				"scopeKey", scopeKey

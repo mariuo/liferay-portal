@@ -42,7 +42,7 @@ type ProjectAssetLinkSearchItem = {
 		classExternalReferenceCode: string;
 		className: string;
 		id: number;
-		r_cmpProjectAssetLinks_c_cmpProjectId: number;
+		r_cmpProjectToCMPProjectAssetRelationships_c_cmpProjectId: number;
 		scopeKey: string;
 	};
 };
@@ -145,7 +145,7 @@ export default function ProjectsPanel({
 					const project = sourceProjects.find(
 						(sourceProject) =>
 							sourceProject.id ===
-							embedded.r_cmpProjectAssetLinks_c_cmpProjectId
+							embedded.r_cmpProjectToCMPProjectAssetRelationships_c_cmpProjectId
 					);
 
 					if (!project) {
@@ -197,7 +197,8 @@ export default function ProjectsPanel({
 					{
 						classExternalReferenceCode: entryExternalReferenceCode,
 						className: entryClassName,
-						r_cmpProjectAssetLinks_c_cmpProjectId: project.id,
+						r_cmpProjectToCMPProjectAssetRelationships_c_cmpProjectId:
+							project.id,
 						scopeKey: entryScopeKey,
 					}
 				).then((result) => ({project, result}))

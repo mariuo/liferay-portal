@@ -321,7 +321,7 @@
 					"label": {
 						"en_US": "CMP Project to CMP Project Asset Relationships"
 					},
-					"name": "cmpProjectAssetLinks",
+					"name": "cmpProjectToCMPProjectAssetRelationships",
 					"objectDefinitionExternalReferenceCode1": "L_CMP_PROJECT",
 					"objectDefinitionExternalReferenceCode2": "L_CMP_PROJECT_ASSET_RELATIONSHIP",
 					"objectDefinitionModifiable2": true,
@@ -337,7 +337,7 @@
 						"label": {
 							"en_US": "CMP Project to CMP Project Asset Relationships"
 						},
-						"name": "r_cmpProjectAssetLinks_c_cmpProjectId",
+						"name": "r_cmpProjectToCMPProjectAssetRelationships_c_cmpProjectId",
 						"objectFieldSettings": [
 							{
 								"name": "objectDefinition1ShortName",
@@ -345,7 +345,7 @@
 							},
 							{
 								"name": "objectRelationshipERCObjectFieldName",
-								"value": "r_cmpProjectAssetLinks_c_cmpProjectERC"
+								"value": "r_cmpProjectToCMPProjectAssetRelationships_c_cmpProjectERC"
 							}
 						],
 						"relationshipType": "oneToMany",
