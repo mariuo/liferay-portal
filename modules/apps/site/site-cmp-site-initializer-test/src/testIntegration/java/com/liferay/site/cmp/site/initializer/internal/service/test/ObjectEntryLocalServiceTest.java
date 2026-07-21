@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-package com.liferay.site.cmp.site.initializer.internal.object.asset.test;
+package com.liferay.site.cmp.site.initializer.internal.service.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.object.exception.ObjectValidationRuleEngineException;
@@ -46,7 +46,7 @@ import org.junit.runner.RunWith;
 	featureFlags = {@FeatureFlag("LPD-17564"), @FeatureFlag("LPD-58677")}
 )
 @RunWith(Arquillian.class)
-public class CMPProjectAssetLinkTest {
+public class ObjectEntryLocalServiceTest {
 
 	@ClassRule
 	@Rule
@@ -57,31 +57,33 @@ public class CMPProjectAssetLinkTest {
 
 	@Before
 	public void setUp() throws Exception {
-		CMPTestUtil.getOrAddGroup(CMPProjectAssetLinkTest.class);
+		CMPTestUtil.getOrAddGroup(ObjectEntryLocalServiceTest.class);
 	}
 
 	@Test
-	public void testAddDuplicateProjectAssetLinkFails() throws Exception {
+	public void testAddDuplicateProjectAssetRelationshipFails()
+		throws Exception {
+
 		ObjectEntry projectObjectEntry = CMPTestUtil.addProjectObjectEntry();
 
 		String className = RandomTestUtil.randomString();
 		String classExternalReferenceCode = RandomTestUtil.randomString();
 		String scopeKey = RandomTestUtil.randomString();
 
-		_addProjectAssetLinkObjectEntry(
+		_addProjectAssetRelationshipObjectEntry(
 			projectObjectEntry, className, classExternalReferenceCode,
 			scopeKey);
 
 		AssertUtils.assertFailure(
 			ObjectValidationRuleEngineException.class,
 			"This asset is already linked to this project.",
-			() -> _addProjectAssetLinkObjectEntry(
+			() -> _addProjectAssetRelationshipObjectEntry(
 				projectObjectEntry, className, classExternalReferenceCode,
 				scopeKey));
 	}
 
 	@Test
-	public void testAddProjectAssetLink() throws Exception {
+	public void testAddProjectAssetRelationship() throws Exception {
 		ObjectEntry projectObjectEntry = CMPTestUtil.addProjectObjectEntry();
 
 		String className = RandomTestUtil.randomString();
@@ -89,7 +91,7 @@ public class CMPProjectAssetLinkTest {
 		String scopeKey = RandomTestUtil.randomString();
 
 		ObjectEntry projectAssetLinkObjectEntry =
-			_addProjectAssetLinkObjectEntry(
+			_addProjectAssetRelationshipObjectEntry(
 				projectObjectEntry, className, classExternalReferenceCode,
 				scopeKey);
 
@@ -103,7 +105,7 @@ public class CMPProjectAssetLinkTest {
 		Assert.assertEquals(scopeKey, values.get("scopeKey"));
 
 		List<ObjectEntry> projectAssetLinkObjectEntries =
-			_getProjectAssetLinkObjectEntries(projectObjectEntry);
+			_getProjectAssetRelationshipObjectEntries(projectObjectEntry);
 
 		Assert.assertEquals(
 			projectAssetLinkObjectEntries.toString(), 1,
@@ -116,22 +118,24 @@ public class CMPProjectAssetLinkTest {
 		String classExternalReferenceCode = RandomTestUtil.randomString();
 		String scopeKey = RandomTestUtil.randomString();
 
-		_addProjectAssetLinkObjectEntry(
+		_addProjectAssetRelationshipObjectEntry(
 			CMPTestUtil.addProjectObjectEntry(), className,
 			classExternalReferenceCode, scopeKey);
 
 		Assert.assertNotNull(
-			_addProjectAssetLinkObjectEntry(
+			_addProjectAssetRelationshipObjectEntry(
 				CMPTestUtil.addProjectObjectEntry(), className,
 				classExternalReferenceCode, scopeKey));
 	}
 
 	@Test
-	public void testDeleteProjectCascadesProjectAssetLinks() throws Exception {
+	public void testDeleteProjectCascadesProjectAssetRelationships()
+		throws Exception {
+
 		ObjectEntry projectObjectEntry = CMPTestUtil.addProjectObjectEntry();
 
 		ObjectEntry projectAssetLinkObjectEntry =
-			_addProjectAssetLinkObjectEntry(
+			_addProjectAssetRelationshipObjectEntry(
 				projectObjectEntry, RandomTestUtil.randomString(),
 				RandomTestUtil.randomString(), RandomTestUtil.randomString());
 
@@ -143,7 +147,7 @@ public class CMPProjectAssetLinkTest {
 				projectAssetLinkObjectEntry.getObjectEntryId()));
 	}
 
-	private ObjectEntry _addProjectAssetLinkObjectEntry(
+	private ObjectEntry _addProjectAssetRelationshipObjectEntry(
 			ObjectEntry projectObjectEntry, String className,
 			String classExternalReferenceCode, String scopeKey)
 		throws Exception {
@@ -170,7 +174,7 @@ public class CMPProjectAssetLinkTest {
 			ServiceContextTestUtil.getServiceContext());
 	}
 
-	private List<ObjectEntry> _getProjectAssetLinkObjectEntries(
+	private List<ObjectEntry> _getProjectAssetRelationshipObjectEntries(
 			ObjectEntry projectObjectEntry)
 		throws Exception {
 

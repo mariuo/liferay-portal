@@ -37,7 +37,7 @@ type ProjectSearchItem = {
 	};
 };
 
-type ProjectAssetLinkSearchItem = {
+type ProjectAssetRelationshipSearchItem = {
 	embedded: {
 		classExternalReferenceCode: string;
 		className: string;
@@ -126,7 +126,7 @@ export default function ProjectsPanel({
 			return;
 		}
 
-		fetchAllSearchItems<ProjectAssetLinkSearchItem>(
+		fetchAllSearchItems<ProjectAssetRelationshipSearchItem>(
 			cmpProjectAssetRelationshipObjectDefinitionId
 		)
 			.then((searchItems) => {

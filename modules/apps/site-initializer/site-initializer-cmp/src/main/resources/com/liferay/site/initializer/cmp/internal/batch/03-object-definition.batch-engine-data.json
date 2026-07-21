@@ -24,7 +24,7 @@
 			"enableObjectEntryHistory": true,
 			"enableObjectEntrySchedule": true,
 			"enableObjectEntrySubscription": true,
-			"externalReferenceCode": "L_CMP_PROJECT",
+				"externalReferenceCode": "L_CMP_PROJECT",
 			"label": {
 				"en_US": "Project"
 			},
@@ -718,7 +718,7 @@
 					},
 					"externalReferenceCode": "L_CMP_PROJECT_ASSET_RELATIONSHIP_UNIQUE",
 					"name": {
-						"en_US": "Unique Project Asset Link"
+						"en_US": "Unique Project Asset Relationship"
 					},
 					"objectDefinitionExternalReferenceCode": "L_CMP_PROJECT_ASSET_RELATIONSHIP",
 					"objectValidationRuleSettings": [
