@@ -27,7 +27,9 @@ const AssetTypeInfoPanelFilesView = () => {
 		? DEFAULT_MAIN_TABS
 		: [...DEFAULT_MAIN_TABS, TABS.COMMENTS];
 
-	const DROPDOWN_TABS = href ? DEFAULT_DROPDOWN_TABS : [];
+	const DROPDOWN_TABS = href
+		? [...DEFAULT_DROPDOWN_TABS, TABS.PROJECTS]
+		: [TABS.PROJECTS];
 
 	const ALL_TABS = [...MAIN_TABS, ...DROPDOWN_TABS];
 
