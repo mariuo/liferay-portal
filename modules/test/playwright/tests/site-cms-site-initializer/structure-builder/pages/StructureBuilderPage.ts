@@ -338,16 +338,24 @@ export class StructureBuilderPage {
 		}
 
 		if (requestFile !== undefined) {
-			await clickAndExpectToBeVisible({
-				autoClick: true,
-				target: this.page.getByRole('option', {
-					name:
-						requestFile === 'computer'
-							? 'Computer'
-							: 'Item Selector',
-				}),
-				trigger: this.page.getByLabel('Request Files'),
+			const option = this.page.getByRole('option', {
+				name: requestFile === 'computer' ? 'Computer' : 'Item Selector',
 			});
+			const trigger = this.page.getByLabel('Request Files');
+
+			await clickAndExpectToBeVisible({target: option, trigger});
+
+			// The CMS theme compiles clay's atlas-custom-properties flavor,
+			// which sets pointer-events: none on .dropdown-item.active, so the
+			// selected option cannot be clicked. Remove this guard once that
+			// divergence is resolved.
+
+			if ((await option.getAttribute('aria-selected')) === 'true') {
+				await clickAndExpectToBeHidden({target: option, trigger});
+			}
+			else {
+				await option.click();
+			}
 		}
 
 		if (maximumFileSize !== undefined) {
@@ -637,6 +645,25 @@ export class StructureBuilderPage {
 
 	async publishStructure() {
 		await this.publishButton.click();
+
+		// Publishing a change that may impact stored data, such as removing a
+		// field, raises a confirmation first
+
+		const confirmDialog = this.page.getByRole('dialog', {
+			name: 'Publish Content Structure Changes',
+		});
+
+		const successAlert = this.page
+			.locator('.alert-success')
+			.filter({hasText: 'published successfully'});
+
+		await expect(confirmDialog.or(successAlert)).toBeVisible({
+			timeout: 10000,
+		});
+
+		if (await confirmDialog.isVisible()) {
+			await confirmDialog.getByRole('button', {name: 'Publish'}).click();
+		}
 
 		await waitForAlert(this.page, 'published successfully', {
 			timeout: 10000,

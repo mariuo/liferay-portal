@@ -13,11 +13,20 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"net"
 	"net/http"
 	"strings"
 	"time"
 
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+)
+
+const (
+	downloadIdleTimeout                = 60 * time.Second
+	downloadResponseHeaderTimeout      = 30 * time.Second
+	offlineActivationPayloadExpiration = 90 * 24 * time.Hour
+	provisioningRequestExpiration      = 60 * time.Second
+	requestTimeout                     = 30 * time.Second
 )
 
 func (httpClient *HTTPClient) Activate(
@@ -34,6 +43,7 @@ func (httpClient *HTTPClient) Activate(
 		},
 		activationRequest.EnvironmentID,
 		privateKey,
+		provisioningRequestExpiration,
 	)
 
 	if error != nil {
@@ -42,7 +52,7 @@ func (httpClient *HTTPClient) Activate(
 
 	response, error := httpClient.post(
 		context, token, fmt.Sprintf(
-			"%s/o/provisioning-rest/v1.0/cloud/environments/%s/activation",
+			"%s/cloud/v1/environments/%s/activation",
 			httpClient.BaseURL, activationRequest.EnvironmentID,
 		),
 	)
@@ -64,6 +74,66 @@ func (httpClient *HTTPClient) Activate(
 	return nil
 }
 
+func (httpClient *HTTPClient) DownloadAddOn(
+	context context.Context,
+	downloadRequest DownloadRequest,
+	privateKey *rsa.PrivateKey,
+) (io.ReadCloser, error) {
+	token, error := signJWT(
+		map[string]any{
+			"environmentID":  downloadRequest.EnvironmentID,
+			"virtualEntryId": downloadRequest.VirtualEntryID,
+		},
+		downloadRequest.EnvironmentID,
+		privateKey,
+		provisioningRequestExpiration,
+	)
+
+	if error != nil {
+		return nil, error
+	}
+
+	response, error := httpClient.send(
+		httpClient.DownloadClient, context, token, downloadRequest.DownloadURL,
+	)
+
+	if error != nil {
+		return nil, error
+	}
+
+	logger := logf.FromContext(context)
+
+	logger.V(1).Info(
+		"Add-on download response",
+		"status", response.StatusCode,
+		"url", downloadRequest.DownloadURL,
+	)
+
+	if response.StatusCode != http.StatusOK {
+		response.Body.Close()
+
+		return nil, fmt.Errorf(
+			"add-on download: unexpected status %d", response.StatusCode,
+		)
+	}
+
+	return response.Body, nil
+}
+
+func EntitlementsFromResponse(entitlementsResponse EntitlementsResponse) (*Entitlements, error) {
+	licenseXML, error := base64.StdEncoding.DecodeString(entitlementsResponse.LicenseXML)
+
+	if error != nil {
+		return nil, fmt.Errorf("entitlements: decode licenseXML: %w", error)
+	}
+
+	return &Entitlements{
+		AddOns:          entitlementsResponse.AddOns,
+		LicenseXML:      licenseXML,
+		MaxClusterNodes: entitlementsResponse.MaxClusterNodes,
+	}, nil
+}
+
 func (httpClient *HTTPClient) Manifest(
 	context context.Context,
 	manifestRequest ManifestRequest,
@@ -76,6 +146,7 @@ func (httpClient *HTTPClient) Manifest(
 		},
 		manifestRequest.EnvironmentID,
 		privateKey,
+		provisioningRequestExpiration,
 	)
 
 	if error != nil {
@@ -84,7 +155,7 @@ func (httpClient *HTTPClient) Manifest(
 
 	response, error := httpClient.post(
 		context, token, fmt.Sprintf(
-			"%s/o/provisioning-rest/v1.0/cloud/environments/%s/manifest",
+			"%s/cloud/v1/environments/%s/manifest",
 			httpClient.BaseURL, manifestRequest.EnvironmentID,
 		),
 	)
@@ -107,26 +178,69 @@ func (httpClient *HTTPClient) Manifest(
 		return nil, fmt.Errorf("entitlements: decode response: %w", error)
 	}
 
-	licenseXML, error := base64.StdEncoding.DecodeString(entitlementsResponse.LicenseXML)
-
-	if error != nil {
-		return nil, fmt.Errorf("entitlements: decode licenseXML: %w", error)
-	}
-
-	entitlements := &Entitlements{
-		AddOns:          entitlementsResponse.AddOns,
-		LicenseXML:      licenseXML,
-		MaxClusterNodes: entitlementsResponse.MaxClusterNodes,
-	}
-
-	return entitlements, nil
+	return EntitlementsFromResponse(entitlementsResponse)
 }
 
 func NewHTTPClient(baseURL string) *HTTPClient {
 	return &HTTPClient{
-		BaseURL: strings.TrimRight(baseURL, "/"),
-		Client:  &http.Client{Timeout: 30 * time.Second},
+		BaseURL:        strings.TrimRight(baseURL, "/"),
+		Client:         &http.Client{Timeout: requestTimeout},
+		DownloadClient: newDownloadClient(downloadIdleTimeout),
 	}
+}
+
+func OfflineActivationPayload(
+	activationRequest ActivationRequest,
+	privateKey *rsa.PrivateKey,
+) (string, error) {
+	return signJWT(
+		map[string]any{
+			"environmentID":   activationRequest.EnvironmentID,
+			"environmentName": activationRequest.EnvironmentName,
+			"publicKey":       activationRequest.PublicKey,
+		},
+		activationRequest.EnvironmentID,
+		privateKey,
+		offlineActivationPayloadExpiration,
+	)
+}
+
+func PayloadExpired(payload string) bool {
+	segments := strings.Split(payload, ".")
+
+	if len(segments) != 3 {
+		return true
+	}
+
+	claimsJSON, error := base64.RawURLEncoding.DecodeString(segments[1])
+
+	if error != nil {
+		return true
+	}
+
+	var claims struct {
+		Exp int64 `json:"exp"`
+	}
+
+	if error := json.Unmarshal(claimsJSON, &claims); error != nil {
+		return true
+	}
+
+	if claims.Exp == 0 {
+		return false
+	}
+
+	return time.Now().Unix() >= claims.Exp
+}
+
+func (idleTimeoutConn *idleTimeoutConn) Read(bytes []byte) (int, error) {
+	if error := idleTimeoutConn.SetReadDeadline(
+		time.Now().Add(idleTimeoutConn.idleTimeout),
+	); error != nil {
+		return 0, error
+	}
+
+	return idleTimeoutConn.Conn.Read(bytes)
 }
 
 func decodeJWTPayload(token string) string {
@@ -159,6 +273,29 @@ func encodeSegment(bytes []byte) string {
 	return base64.RawURLEncoding.EncodeToString(bytes)
 }
 
+func newDownloadClient(idleTimeout time.Duration) *http.Client {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+
+	dialContext := transport.DialContext
+
+	transport.DialContext = func(
+		context context.Context, network string, address string,
+	) (net.Conn, error) {
+		connection, error := dialContext(context, network, address)
+
+		if error != nil {
+			return nil, error
+		}
+
+		return &idleTimeoutConn{Conn: connection, idleTimeout: idleTimeout}, nil
+	}
+
+	transport.DisableKeepAlives = true
+	transport.ResponseHeaderTimeout = downloadResponseHeaderTimeout
+
+	return &http.Client{Transport: transport}
+}
+
 func (httpClient *HTTPClient) post(
 	context context.Context,
 	token string,
@@ -166,21 +303,7 @@ func (httpClient *HTTPClient) post(
 ) (*http.Response, error) {
 	logger := logf.FromContext(context)
 
-	logger.V(1).Info(
-		"Provisioning POST", "payload", decodeJWTPayload(token), "url", url,
-	)
-
-	request, error := http.NewRequestWithContext(
-		context, http.MethodPost, url, bytes.NewReader([]byte(token)),
-	)
-
-	if error != nil {
-		return nil, error
-	}
-
-	request.Header.Set("Content-Type", "text/plain")
-
-	response, error := httpClient.Client.Do(request)
+	response, error := httpClient.send(httpClient.Client, context, token, url)
 
 	if error != nil {
 		return nil, error
@@ -196,7 +319,8 @@ func (httpClient *HTTPClient) post(
 		}
 
 		logger.V(1).Info(
-			"Provisioning response", "body", string(body),
+			"Provisioning response",
+			"body", redactSensitive(string(body)),
 			"status", response.StatusCode, "url", url,
 		)
 
@@ -206,10 +330,67 @@ func (httpClient *HTTPClient) post(
 	return response, nil
 }
 
+func redactSensitive(payload string) string {
+	var fields map[string]any
+
+	if error := json.Unmarshal([]byte(payload), &fields); error != nil {
+		return payload
+	}
+
+	redacted := false
+
+	for _, key := range []string{"activationCode", "licenseXML"} {
+		if _, ok := fields[key]; ok {
+			fields[key] = "[REDACTED]"
+			redacted = true
+		}
+	}
+
+	if !redacted {
+		return payload
+	}
+
+	marshaled, error := json.Marshal(fields)
+
+	if error != nil {
+		return payload
+	}
+
+	return string(marshaled)
+}
+
+func (httpClient *HTTPClient) send(
+	client *http.Client,
+	context context.Context,
+	token string,
+	url string,
+) (*http.Response, error) {
+	logger := logf.FromContext(context)
+
+	logger.V(1).Info(
+		"Provisioning POST",
+		"payload", redactSensitive(decodeJWTPayload(token)),
+		"url", url,
+	)
+
+	request, error := http.NewRequestWithContext(
+		context, http.MethodPost, url, bytes.NewReader([]byte(token)),
+	)
+
+	if error != nil {
+		return nil, error
+	}
+
+	request.Header.Set("Content-Type", "text/plain")
+
+	return client.Do(request)
+}
+
 func signJWT(
 	claims map[string]any,
 	issuer string,
 	privateKey *rsa.PrivateKey,
+	expiration time.Duration,
 ) (string, error) {
 	now := time.Now()
 
@@ -221,7 +402,7 @@ func signJWT(
 		return "", error
 	}
 
-	payload["exp"] = now.Add(60 * time.Second).Unix()
+	payload["exp"] = now.Add(expiration).Unix()
 	payload["iat"] = now.Unix()
 	payload["iss"] = issuer
 	payload["jti"] = randomID
@@ -259,6 +440,13 @@ func signJWT(
 }
 
 type HTTPClient struct {
-	BaseURL string
-	Client  *http.Client
+	BaseURL        string
+	Client         *http.Client
+	DownloadClient *http.Client
+}
+
+type idleTimeoutConn struct {
+	net.Conn
+
+	idleTimeout time.Duration
 }

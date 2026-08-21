@@ -6,6 +6,8 @@
 package com.liferay.site.cmp.site.initializer.internal.model.listener;
 
 import com.liferay.depot.constants.DepotRolesConstants;
+import com.liferay.depot.model.DepotEntry;
+import com.liferay.depot.service.DepotEntryLocalService;
 import com.liferay.layout.page.template.model.LayoutPageTemplateEntry;
 import com.liferay.layout.page.template.service.LayoutPageTemplateEntryLocalService;
 import com.liferay.object.constants.ObjectActionKeys;
@@ -51,6 +53,7 @@ import com.liferay.portal.kernel.service.UserService;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.CalendarFactoryUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
+import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
@@ -60,8 +63,10 @@ import com.liferay.portal.security.audit.event.generators.util.Attribute;
 import com.liferay.portal.security.audit.event.generators.util.AuditMessageBuilder;
 import com.liferay.portal.workflow.kaleo.model.KaleoTaskInstanceToken;
 import com.liferay.portal.workflow.kaleo.service.KaleoTaskInstanceTokenLocalService;
+import com.liferay.site.cmp.site.initializer.internal.util.CMPObjectEntryUtil;
 import com.liferay.site.cmp.site.initializer.internal.util.RoleUtil;
 import com.liferay.site.cmp.site.initializer.internal.util.SiteInitializerUtil;
+import com.liferay.site.cms.site.initializer.util.CMSObjectEntryUtil;
 import com.liferay.site.initializer.SiteInitializer;
 
 import java.io.Serializable;
@@ -104,6 +109,7 @@ public class ObjectEntryModelListener extends BaseModelListener<ObjectEntry> {
 		throws ModelListenerException {
 
 		try {
+			_deleteProjectDepotEntry(objectEntry);
 			_reindexLinkedObjectEntry(objectEntry);
 			_route("CMP_REMOVE_ASSET", objectEntry);
 			_updateProjectCompletionRate(objectEntry);
@@ -125,6 +131,64 @@ public class ObjectEntryModelListener extends BaseModelListener<ObjectEntry> {
 		}
 		catch (Exception exception) {
 			throw new ModelListenerException(exception);
+		}
+	}
+
+	@Override
+	public void onBeforeRemove(ObjectEntry objectEntry)
+		throws ModelListenerException {
+
+		try {
+			_deleteObjectEntries(objectEntry);
+		}
+		catch (Exception exception) {
+			throw new ModelListenerException(exception);
+		}
+	}
+
+	private void _deleteObjectEntries(ObjectEntry objectEntry)
+		throws Exception {
+
+		if (!CMSObjectEntryUtil.isCMSObjectEntry(objectEntry)) {
+			return;
+		}
+
+		for (String objectDefinitionExternalReferenceCode :
+				ListUtil.fromArray("L_CMP_PROJECT_LINK", "L_CMP_TASK_LINK")) {
+
+			for (long objectEntryId :
+					CMPObjectEntryUtil.getObjectEntryIds(
+						_filterFactory, _groupLocalService,
+						objectDefinitionExternalReferenceCode,
+						_objectDefinitionLocalService, objectEntry,
+						_objectEntryLocalService)) {
+
+				_objectEntryLocalService.deleteObjectEntry(objectEntryId);
+			}
+		}
+	}
+
+	private void _deleteProjectDepotEntry(ObjectEntry objectEntry)
+		throws Exception {
+
+		if (!objectEntry.isDraft()) {
+			return;
+		}
+
+		ObjectDefinition objectDefinition = objectEntry.getObjectDefinition();
+
+		if ((objectDefinition == null) ||
+			!StringUtil.equals(
+				objectDefinition.getExternalReferenceCode(), "L_CMP_PROJECT")) {
+
+			return;
+		}
+
+		DepotEntry depotEntry = _depotEntryLocalService.fetchGroupDepotEntry(
+			objectEntry.getGroupId());
+
+		if (depotEntry != null) {
+			_depotEntryLocalService.deleteDepotEntry(depotEntry);
 		}
 	}
 
@@ -585,6 +649,9 @@ public class ObjectEntryModelListener extends BaseModelListener<ObjectEntry> {
 
 	@Reference
 	private AuditRouter _auditRouter;
+
+	@Reference
+	private DepotEntryLocalService _depotEntryLocalService;
 
 	@Reference(
 		target = "(filter.factory.key=" + ObjectDefinitionConstants.STORAGE_TYPE_DEFAULT + ")"

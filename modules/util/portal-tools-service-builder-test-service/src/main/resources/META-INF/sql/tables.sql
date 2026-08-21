@@ -41,6 +41,11 @@ create table CacheReplicatorEntry (
 	name VARCHAR(75) null
 );
 
+create table ClobEntry (
+	clobEntryId LONG not null primary key,
+	content TEXT null
+);
+
 create table ColumnNameEntry (
 	cNameEntryId LONG not null primary key,
 	name VARCHAR(75) null
@@ -77,7 +82,8 @@ create table DataLimitEntry (
 
 create table DateEntry (
 	dateEntryId LONG not null primary key,
-	value DATE null
+	companyId LONG,
+	snapshotDate DATE null
 );
 
 create table DefinedDefaultOrderEntry (

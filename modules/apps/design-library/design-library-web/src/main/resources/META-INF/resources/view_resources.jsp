@@ -32,7 +32,7 @@ ViewResourcesDesignLibraryDisplayContext viewResourcesDesignLibraryDisplayContex
 			Map<String, Object> membersFDSAdditionalProps = membersDesignLibraryDisplayContext.getFDSAdditionalProps();
 			%>
 
-			<div class="p-4">
+			<div class="pb-4 px-4">
 				<div class="row">
 					<div class="col-12 col-lg-8">
 						<div class="card">
@@ -48,11 +48,14 @@ ViewResourcesDesignLibraryDisplayContext viewResourcesDesignLibraryDisplayContex
 									<frontend-data-set:headless-display
 										additionalProps="<%= resourcesFDSAdditionalProps %>"
 										apiURL="<%= viewResourcesDesignLibraryDisplayContext.getAPIURL() %>"
+										bulkActionDropdownItems="<%= viewResourcesDesignLibraryDisplayContext.getBulkActionDropdownItems() %>"
 										emptyState="<%= viewResourcesDesignLibraryDisplayContext.getEmptyState() %>"
 										fdsActionDropdownItems="<%= viewResourcesDesignLibraryDisplayContext.getFDSActionDropdownItems() %>"
 										formName="fm"
 										id="<%= DesignLibraryAdminFDSNames.DESIGN_LIBRARY_RESOURCES %>"
 										propsTransformer="{DesignLibraryAssetsFDSPropsTransformer} from design-library-web"
+										selectedItemsKey="embedded.externalReferenceCode"
+										selectionType="multiple"
 									/>
 								</div>
 							</div>

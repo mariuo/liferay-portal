@@ -4,6 +4,8 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+source "$(dirname "${BASH_SOURCE[0]}")/../_azure_common.sh"
+
 function main {
 	local fail=0
 	local pass=0
@@ -12,20 +14,27 @@ function main {
 
 	scripts_dir=$(cd "$(dirname "${0}")/.." && pwd)
 
-	for script in "${scripts_dir}/setup_aws.sh" "${scripts_dir}/setup_azure.sh" "${scripts_dir}/setup_gcp.sh"
+	for script in "${scripts_dir}/setup_aws.sh" "${scripts_dir}/setup_gcp.sh"
 	do
 		_run_test "${script}" _test_aborts_with_config_missing_variables_object
+		_run_test "${script}" _test_aborts_with_old_terraform_version
+	done
+
+	for script in "${scripts_dir}/setup_aws.sh" "${scripts_dir}/setup_azure.sh" "${scripts_dir}/setup_gcp.sh"
+	do
 		_run_test "${script}" _test_aborts_with_malformed_config_json
 		_run_test "${script}" _test_aborts_with_missing_config_file
 		_run_test "${script}" _test_aborts_with_missing_required_utility
 		_run_test "${script}" _test_aborts_with_no_arguments
-		_run_test "${script}" _test_aborts_with_old_terraform_version
 	done
+
+	_run_test "${scripts_dir}/_azure_common.sh" _test_fills_observability_parameters_from_terraform_outputs
+	_run_test "${scripts_dir}/_azure_common.sh" _test_omits_unavailable_observability_parameters
 
 	echo ""
 	echo "Results: ${pass} passed, ${fail} failed."
 
-	if [ "${fail}" -eq 0 ]
+	if [ ${fail} -eq 0 ]
 	then
 		return 0
 	fi
@@ -44,7 +53,7 @@ function _make_stub_path {
 
 		real_path=$(command -v "${util}" 2>/dev/null || true)
 
-		if [ -n "${real_path}" ]
+		if [[ -n ${real_path} ]]
 		then
 			ln -s "${real_path}" "${stub_dir}/${util}"
 		else
@@ -62,7 +71,7 @@ EOF
 
 		real_path=$(command -v "${util}" 2>/dev/null || true)
 
-		if [ -n "${real_path}" ]
+		if [[ -n ${real_path} ]]
 		then
 			ln -s "${real_path}" "${stub_dir}/${util}"
 		fi
@@ -78,7 +87,7 @@ function _make_terraform_stub {
 	cat > "${stub_dir}/terraform" <<EOF
 #!/usr/bin/env bash
 
-if [ "\${1:-}" = "--version" ]
+if [[ \${1:-} == --version ]]
 then
 	echo "Terraform v${version}"
 
@@ -103,7 +112,7 @@ function _run_setup_test {
 
 	_make_terraform_stub "${stub_dir}" "${terraform_version}"
 
-	if [ -n "${utility_to_remove}" ]
+	if [[ -n ${utility_to_remove} ]]
 	then
 		rm "${stub_dir}/${utility_to_remove}"
 	fi
@@ -141,7 +150,7 @@ function _run_test {
 
 	"${test_function}" "${script}" || exit_code="${?}"
 
-	if [ "${exit_code}" -eq 0 ]
+	if [ ${exit_code} -eq 0 ]
 	then
 		echo "PASS: [${script_name}] ${description}."
 
@@ -164,7 +173,7 @@ function _test_aborts_with_config_missing_variables_object {
 	exit_code=$(echo "${result}" | head -n 1)
 	output=$(echo "${result}" | tail -n +2)
 
-	if [ "${exit_code}" -ne 0 ] && [[ "${output}" == *'must contain a root object named "variables"'* ]]
+	if [ ${exit_code} -ne 0 ] && [[ ${output} == *'must contain a root object named "variables"'* ]]
 	then
 		return 0
 	fi
@@ -181,7 +190,7 @@ function _test_aborts_with_malformed_config_json {
 	exit_code=$(echo "${result}" | head -n 1)
 	output=$(echo "${result}" | tail -n +2)
 
-	if [ "${exit_code}" -ne 0 ] && [[ "${output}" == *"is not valid JSON"* ]]
+	if [ ${exit_code} -ne 0 ] && [[ ${output} == *"is not valid JSON"* ]]
 	then
 		return 0
 	fi
@@ -202,7 +211,7 @@ function _test_aborts_with_missing_config_file {
 
 	rm -rf "${stub_dir}"
 
-	if [ "${exit_code}" -ne 0 ] && [[ "${output}" == *"Configuration JSON file"*"does not exist"* ]]
+	if [ ${exit_code} -ne 0 ] && [[ ${output} == *"Configuration JSON file"*"does not exist"* ]]
 	then
 		return 0
 	fi
@@ -221,7 +230,7 @@ function _test_aborts_with_missing_required_utility {
 	exit_code=$(echo "${result}" | head -n 1)
 	output=$(echo "${result}" | tail -n +2)
 
-	if [ "${exit_code}" -ne 0 ] && [[ "${output}" == *"utility jq is not installed"* ]]
+	if [ ${exit_code} -ne 0 ] && [[ ${output} == *"utility jq is not installed"* ]]
 	then
 		return 0
 	fi
@@ -235,7 +244,7 @@ function _test_aborts_with_no_arguments {
 
 	output=$(bash "${1}" 2>&1) || exit_code="${?}"
 
-	if [ "${exit_code}" -ne 0 ] && [[ "${output}" == *"Usage:"* ]]
+	if [ ${exit_code} -ne 0 ] && [[ ${output} == *"Usage:"* ]]
 	then
 		return 0
 	fi
@@ -254,7 +263,85 @@ function _test_aborts_with_old_terraform_version {
 	exit_code=$(echo "${result}" | head -n 1)
 	output=$(echo "${result}" | tail -n +2)
 
-	if [ "${exit_code}" -ne 0 ] && [[ "${output}" == *"is older than"* ]]
+	if [ ${exit_code} -ne 0 ] && [[ ${output} == *"is older than"* ]]
+	then
+		return 0
+	fi
+
+	return 1
+}
+
+function _test_fills_observability_parameters_from_terraform_outputs {
+	local aks_outputs
+
+	aks_outputs=$(jq --null-input '{
+		observability_identity_client_id: {
+			value: "27ed4e1e-8c11-43e1-810f-afb22a5a2418"
+		},
+		prometheus_data_collection_rule_id: {
+			value: "dcr-9fb40355a2cc4e50a20a82171a15e33a"
+		},
+		prometheus_metrics_ingestion_endpoint: {
+			value: "https://liferay-test-dce.eastus-1.metrics.ingest.monitor.azure.com"
+		}
+	}')
+
+	local expected_parameters
+
+	expected_parameters=$(jq --compact-output --null-input --sort-keys '[
+		{
+			name: "alloy.iam.azureClientId",
+			value: "27ed4e1e-8c11-43e1-810f-afb22a5a2418"
+		},
+		{
+			name: "azure.remoteWrite.dataCollectionRuleId",
+			value: "dcr-9fb40355a2cc4e50a20a82171a15e33a"
+		},
+		{
+			name: "azure.remoteWrite.metricsIngestionEndpoint",
+			value: "https://liferay-test-dce.eastus-1.metrics.ingest.monitor.azure.com"
+		},
+		{
+			name: "azure.remoteWrite.tenantId",
+			value: "86315286-b8fe-4db7-abd0-cc8f6421c133"
+		},
+		{
+			name: "cloudProvider",
+			value: "azure"
+		}
+	]')
+
+	local parameters
+
+	parameters=$(get_observability_parameters "${aks_outputs}" "86315286-b8fe-4db7-abd0-cc8f6421c133" | jq --compact-output --sort-keys '.')
+
+	if [ "${parameters}" == "${expected_parameters}" ]
+	then
+		return 0
+	fi
+
+	return 1
+}
+
+function _test_omits_unavailable_observability_parameters {
+	local expected_parameters
+
+	expected_parameters=$(jq --compact-output --null-input --sort-keys '[
+		{
+			name: "azure.remoteWrite.tenantId",
+			value: "86315286-b8fe-4db7-abd0-cc8f6421c133"
+		},
+		{
+			name: "cloudProvider",
+			value: "azure"
+		}
+	]')
+
+	local parameters
+
+	parameters=$(get_observability_parameters "{}" "86315286-b8fe-4db7-abd0-cc8f6421c133" | jq --compact-output --sort-keys '.')
+
+	if [ "${parameters}" == "${expected_parameters}" ]
 	then
 		return 0
 	fi

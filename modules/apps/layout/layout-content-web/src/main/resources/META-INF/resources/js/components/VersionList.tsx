@@ -43,12 +43,14 @@ export type ListItem = {
 export default function VersionList({
 	items,
 	onDelete,
+	onRestore,
 	onSelect,
 	searching,
 	selectedKey,
 }: {
 	items: ListItem[];
 	onDelete?: (version: PageVersion) => void;
+	onRestore?: (version: PageVersion) => void;
 	onSelect: (key: string) => void;
 	searching: boolean;
 	selectedKey?: string;
@@ -93,7 +95,11 @@ export default function VersionList({
 
 				const {displayType, label} = STATUSES[status];
 
-				const actionItems = buildActionItems({onDelete, version});
+				const actionItems = buildActionItems({
+					onDelete,
+					onRestore,
+					version,
+				});
 
 				return (
 					<ClayList.Item
@@ -198,14 +204,32 @@ export default function VersionList({
 
 function buildActionItems({
 	onDelete,
+	onRestore,
 	version,
 }: {
 	onDelete?: (version: PageVersion) => void;
+	onRestore?: (version: PageVersion) => void;
 	version?: PageVersion;
 }) {
 	const items: ActionItems = [];
 
+	if (version?.actions?.restore) {
+		items.push({
+			label: Liferay.Language.get('restore-version'),
+			onClick: (event) => {
+				event.stopPropagation();
+
+				onRestore?.(version);
+			},
+			symbolLeft: 'restore',
+		});
+	}
+
 	if (version?.actions?.delete) {
+		if (items.length) {
+			items.push({type: 'divider'});
+		}
+
 		items.push({
 			label: Liferay.Language.get('delete-version'),
 			onClick: (event) => {

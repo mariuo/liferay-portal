@@ -1,7 +1,8 @@
 mock_provider "azurerm" {
 	mock_data "azurerm_key_vault" {
 		defaults={
-			id="/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/liferay-test/providers/Microsoft.KeyVault/vaults/liferay-test-vault"
+			id="/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/liferay-test-vault/providers/Microsoft.KeyVault/vaults/liferay-test-vault"
+			rbac_authorization_enabled=true
 		}
 	}
 	mock_data "azurerm_resource_group" {
@@ -15,40 +16,75 @@ mock_provider "azurerm" {
 		}
 	}
 }
+mock_provider "kubernetes" {}
 override_module {
 	target=module.argocd
 }
-run "should_assemble_the_cluster_identity" {
+run "should_align_the_karpenter_node_pool_with_the_system_machine_type" {
 	assert {
-		condition=join(",", keys(local.cluster_identity)) == "crossplaneDataClientId,crossplaneIamClientId,deploymentName,oidcIssuerUrl,region,resourceGroupName,subscriptionId,tenantId"
-		error_message="The cluster identity must carry exactly the keys the infrastructure provider consumes"
+		condition=one([for requirement in kubernetes_manifest.karpenter_node_pool.manifest.spec.template.spec.requirements : requirement.values if requirement.key == "karpenter.azure.com/sku-name"]) == ["Standard_D16s_v3"]
+		error_message="The Karpenter node pool must use the specified machine type"
 	}
 	assert {
-		condition=local.cluster_identity.deploymentName == "liferay-test"
-		error_message="The cluster identity must carry the deployment name"
+		condition=kubernetes_manifest.karpenter_node_pool.manifest.spec.weight > 0
+		error_message="The Karpenter node pool must have high priority"
 	}
 	assert {
-		condition=local.cluster_identity.region == "eastus"
-		error_message="The cluster identity must carry the deployment region"
+		condition=try(kubernetes_manifest.karpenter_node_pool.manifest.spec.disruption.consolidateAfter, "") != ""
+		error_message="The Karpenter node pool must set a consolidateAfter"
+	}
+	assert {
+		condition=kubernetes_manifest.karpenter_node_pool.manifest.spec.template.spec.nodeClassRef.name == kubernetes_manifest.karpenter_node_class.manifest.metadata.name
+		error_message="The Karpenter node pool must reference the node class this module declares"
+	}
+	command=plan
+	override_data {
+		target=data.azurerm_kubernetes_cluster.aks
+		values={
+			agent_pool_profile=[
+				{
+					name="system"
+					vm_size="Standard_D16s_v3"
+				},
+			]
+		}
+	}
+}
+run "should_assemble_the_deployment_context" {
+	assert {
+		condition=join(",", keys(local.deployment_context)) == "crossplaneDataClientId,crossplaneIamClientId,deploymentName,oidcIssuerUrl,region,resourceGroupName,subscriptionId,tenantId"
+		error_message="The deployment context must carry exactly the keys the infrastructure provider consumes"
+	}
+	assert {
+		condition=local.deployment_context.deploymentName == "liferay-test"
+		error_message="The deployment context must carry the deployment name"
+	}
+	assert {
+		condition=local.deployment_context.region == "eastus"
+		error_message="The deployment context must carry the deployment region"
 	}
 	command=plan
 }
-run "should_default_to_the_azure_key_vault_secret_store" {
+run "should_build_the_azure_key_vault_secret_store_provider" {
 	assert {
 		condition=join(",", keys(local.cluster_secret_store_provider)) == "azurekv"
-		error_message="The secret store provider must default to Azure Key Vault"
+		error_message="The key vault branch must produce an Azure Key Vault provider"
 	}
 	assert {
 		condition=local.cluster_secret_store_provider.azurekv.authType == "WorkloadIdentity"
-		error_message="The default Azure Key Vault provider must authenticate through workload identity"
+		error_message="The Azure Key Vault provider must authenticate through workload identity"
 	}
 	assert {
 		condition=local.cluster_secret_store_provider.azurekv.serviceAccountRef.name == "external-secrets" && local.cluster_secret_store_provider.azurekv.serviceAccountRef.namespace == "external-secrets-system"
-		error_message="The default Azure Key Vault provider must reference the External Secrets service account"
+		error_message="The Azure Key Vault provider must reference the External Secrets service account"
+	}
+	assert {
+		condition=local.cluster_secret_store_provider.azurekv.tenantId == data.azurerm_client_config.current.tenant_id
+		error_message="The Azure Key Vault provider must carry the tenant ID required by workload identity"
 	}
 	assert {
 		condition=local.cluster_secret_store_provider.azurekv.vaultUrl == data.azurerm_key_vault.liferay[0].vault_uri
-		error_message="The default Azure Key Vault provider must point at the deployment vault"
+		error_message="The Azure Key Vault provider must point at the configured vault"
 	}
 	command=plan
 }
@@ -56,14 +92,6 @@ run "should_derive_azure_resource_names_from_the_deployment_name" {
 	assert {
 		condition=data.azurerm_kubernetes_cluster.aks.name == "liferay-test-aks"
 		error_message="The AKS cluster lookup must derive its name from the deployment name"
-	}
-	assert {
-		condition=data.azurerm_key_vault.liferay[0].name == "liferay-test-vault"
-		error_message="The Key Vault lookup must derive its name from the deployment name with the -vault suffix"
-	}
-	assert {
-		condition=data.azurerm_key_vault.liferay[0].resource_group_name == "liferay-test"
-		error_message="The resource group lookup must derive its name from the deployment name"
 	}
 	assert {
 		condition=azurerm_user_assigned_identity.crossplane_data.name == "liferay-test-crossplane-data"
@@ -98,20 +126,72 @@ run "should_inject_an_external_secret_store_provider" {
 	}
 	command=plan
 	variables {
-		cluster_secret_store_provider_hcl={
-			vault={
-				server="https://vault.example.com:8200"
+		cluster_secret_store={
+			provider_hcl={
+				vault={
+					server="https://vault.example.com:8200"
+				}
 			}
 		}
 	}
 }
-run "should_reject_a_deployment_name_the_vault_name_cannot_absorb" {
+run "should_look_up_the_key_vault_from_the_configured_names" {
+	assert {
+		condition=data.azurerm_key_vault.liferay[0].name == "custom-vault"
+		error_message="The Key Vault lookup must use the configured key vault name"
+	}
+	assert {
+		condition=data.azurerm_key_vault.liferay[0].resource_group_name == "custom-group"
+		error_message="The Key Vault lookup must use the configured key vault resource group name"
+	}
+	command=plan
+	variables {
+		cluster_secret_store={
+			key_vault={
+				name="custom-vault"
+				resource_group_name="custom-group"
+			}
+		}
+	}
+}
+run "should_reject_a_cluster_secret_store_with_both_branches" {
 	command=plan
 	expect_failures=[
-		var.deployment_name,
+		var.cluster_secret_store,
 	]
 	variables {
-		deployment_name="liferay-test-overflowing"
+		cluster_secret_store={
+			key_vault={
+				name="liferay-test-vault"
+				resource_group_name="liferay-test-vault"
+			}
+			provider_hcl={
+				vault={
+					server="https://vault.example.com:8200"
+				}
+			}
+		}
+	}
+}
+run "should_reject_a_key_vault_without_rbac_authorization" {
+	command=plan
+	expect_failures=[
+		data.azurerm_key_vault.liferay,
+	]
+	override_data {
+		target=data.azurerm_key_vault.liferay
+		values={
+			rbac_authorization_enabled=false
+		}
+	}
+}
+run "should_reject_an_empty_cluster_secret_store" {
+	command=plan
+	expect_failures=[
+		var.cluster_secret_store,
+	]
+	variables {
+		cluster_secret_store={}
 	}
 }
 run "should_wire_the_platform_identities" {
@@ -132,20 +212,20 @@ run "should_wire_the_platform_identities" {
 		error_message="The federated credentials must trust the cluster OIDC issuer"
 	}
 	assert {
-		condition=local.cluster_identity.crossplaneDataClientId == azurerm_user_assigned_identity.crossplane_data.client_id
-		error_message="The cluster identity must carry the Crossplane data identity client ID"
+		condition=local.deployment_context.crossplaneDataClientId == azurerm_user_assigned_identity.crossplane_data.client_id
+		error_message="The deployment context must carry the Crossplane data identity client ID"
 	}
 	assert {
-		condition=local.cluster_identity.crossplaneIamClientId == azurerm_user_assigned_identity.crossplane_iam.client_id
-		error_message="The cluster identity must carry the Crossplane IAM identity client ID"
+		condition=local.deployment_context.crossplaneIamClientId == azurerm_user_assigned_identity.crossplane_iam.client_id
+		error_message="The deployment context must carry the Crossplane IAM identity client ID"
 	}
 	assert {
 		condition=output.external_secrets_client_id == azurerm_user_assigned_identity.external_secrets.client_id
 		error_message="The External Secrets client ID must be published so the bootstrap can annotate the service account"
 	}
 	assert {
-		condition=output.cluster_identity == local.cluster_identity
-		error_message="The cluster identity must be published for the bootstrap to place under clusterIdentity"
+		condition=output.deployment_context == local.deployment_context
+		error_message="The deployment context must be published for the bootstrap to place under deploymentContext"
 	}
 	assert {
 		condition=output.cluster_secret_store_provider == local.cluster_secret_store_provider
@@ -164,11 +244,11 @@ run "should_wire_the_platform_identities" {
 		error_message="The Crossplane IAM identity must hold Role Based Access Control Administrator on the resource group"
 	}
 	assert {
-		condition=data.azurerm_role_definition.key_vault_crypto_service_encryption_user.name == "Key Vault Crypto Service Encryption User" && data.azurerm_role_definition.storage_blob_data_contributor.name == "Storage Blob Data Contributor"
+		condition=data.azurerm_role_definition.key_vault_crypto_service_encryption_user.name == "Key Vault Crypto Service Encryption User" && data.azurerm_role_definition.storage_blob_data_contributor.name == "Storage Blob Data Contributor" && data.azurerm_role_definition.storage_blob_data_reader.name == "Storage Blob Data Reader"
 		error_message="The grantable role allowlist must resolve the intended built in roles by name"
 	}
 	assert {
-		condition=strcontains(azurerm_role_assignment.crossplane_iam_rbac_administrator.condition, basename(data.azurerm_role_definition.key_vault_crypto_service_encryption_user.role_definition_id)) && strcontains(azurerm_role_assignment.crossplane_iam_rbac_administrator.condition, basename(data.azurerm_role_definition.storage_blob_data_contributor.role_definition_id))
+		condition=strcontains(azurerm_role_assignment.crossplane_iam_rbac_administrator.condition, basename(data.azurerm_role_definition.key_vault_crypto_service_encryption_user.role_definition_id)) && strcontains(azurerm_role_assignment.crossplane_iam_rbac_administrator.condition, basename(data.azurerm_role_definition.storage_blob_data_contributor.role_definition_id)) && strcontains(azurerm_role_assignment.crossplane_iam_rbac_administrator.condition, basename(data.azurerm_role_definition.storage_blob_data_reader.role_definition_id))
 		error_message="The role assignment condition must restrict grantable roles to the allowlist"
 	}
 	assert {
@@ -187,6 +267,12 @@ run "should_wire_the_platform_identities" {
 }
 variables {
 	argocd_helm_chart_version="10.1.3"
+	cluster_secret_store={
+		key_vault={
+			name="liferay-test-vault"
+			resource_group_name="liferay-test-vault"
+		}
+	}
 	deployment_name="liferay-test"
 	region="eastus"
 }

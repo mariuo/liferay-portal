@@ -1,3 +1,4 @@
+{{- if .Values.infrastructure.enabled -}}
 {{- $layout := .Values.gitops.layout -}}
 {{- $name := printf "%s-%s-infra" $layout.projectId $layout.environmentId -}}
 apiVersion: argoproj.io/v1alpha1
@@ -45,7 +46,7 @@ spec:
                             -   name: projectId
                                 value: {{ $layout.projectId | quote }}
                             -   name: region
-                                value: {{ .Values.clusterIdentity.region | quote }}
+                                value: {{ .Values.deploymentContext.region | quote }}
                             -   name: secretStoreName
                                 value: {{ include "liferay-platform.clusterSecretStoreName" . | quote }}
                             {{- with .Values.infrastructure.parameters }}
@@ -75,3 +76,4 @@ spec:
                     -   IgnoreExtraneous=true
                     -   RespectIgnoreDifferences=true
                     -   SkipDryRunOnMissingResource=true
+{{- end -}}

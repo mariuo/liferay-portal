@@ -5,6 +5,8 @@
 
 // @ts-nocheck
 
+import {escapeHTML} from 'frontend-js-web';
+
 jest.mock('@ckeditor/ckeditor5-bookmark/dist/index', () => ({}));
 jest.mock('@ckeditor/ckeditor5-clipboard/dist/index', () => ({}));
 jest.mock('@ckeditor/ckeditor5-editor-decoupled/dist/index', () => ({}));
@@ -78,13 +80,14 @@ class MockBroadcastChannel {
 		getBCP47LanguageId: () => 'en-US',
 		getDefaultLanguageId: () => 'en_US',
 		getLanguageId: () => 'en_US',
+		getPathFriendlyURLPublic: () => '/web',
 		getTimeZone: () => 'UTC',
 		getUserId: () => '1',
 		isImpersonated: () => false,
 	},
 	Util: {
 		...(globalThis.Liferay.Util || {}),
-		escapeHTML: (str: string) => str,
+		escapeHTML,
 		formatStorage: (size: number) => `${size / 1024} KB`,
 	},
 	authToken: 'mocked-auth-token',

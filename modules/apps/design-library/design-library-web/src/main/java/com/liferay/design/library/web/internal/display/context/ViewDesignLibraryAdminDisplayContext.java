@@ -9,10 +9,9 @@ import com.liferay.depot.constants.DepotActionKeys;
 import com.liferay.depot.constants.DepotConstants;
 import com.liferay.exportimport.constants.ExportImportPortletKeys;
 import com.liferay.frontend.data.set.model.FDSActionDropdownItem;
+import com.liferay.frontend.taglib.clay.servlet.taglib.util.DropdownItem;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
-import com.liferay.portal.kernel.json.JSONArray;
-import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.module.service.Snapshot;
 import com.liferay.portal.kernel.portlet.LiferayPortletResponse;
@@ -51,10 +50,12 @@ public class ViewDesignLibraryAdminDisplayContext {
 			"eq 'DesignLibrary'";
 	}
 
-	public Map<String, Object> getBreadcrumbProps() {
-		return HashMapBuilder.<String, Object>put(
-			"breadcrumbItems", _getBreadcrumbItemsJSONArray()
-		).build();
+	public List<DropdownItem> getBulkActionDropdownItems() {
+		return ListUtil.fromArray(
+			new FDSActionDropdownItem(
+				null, "trash", "delete",
+				LanguageUtil.get(_httpServletRequest, "delete"), null, "delete",
+				null));
 	}
 
 	public Map<String, Object> getEmptyState() {
@@ -118,16 +119,6 @@ public class ViewDesignLibraryAdminDisplayContext {
 				"/design_library/view_resources_design_library"
 			).buildString()
 		).build();
-	}
-
-	private JSONArray _getBreadcrumbItemsJSONArray() {
-		return JSONUtil.putAll(
-			JSONUtil.put(
-				"active", true
-			).put(
-				"label",
-				LanguageUtil.get(_httpServletRequest, "design-libraries")
-			));
 	}
 
 	private String _getExportImportPortletURL(String portletId) {

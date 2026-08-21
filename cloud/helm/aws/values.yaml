@@ -206,9 +206,9 @@ liferay-default:
                 name: liferay-search-config-aws
     license:
         enabled: true
-    lpkg:
-        enabled: true
     marketplace:
+        csi:
+            driver: efs.csi.aws.com
         enabled: true
         size: 10Gi
         storageClassName: efs-sc

@@ -10,6 +10,7 @@ import {
 } from '@liferay/layout-js-components-web';
 import {render, screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import {openToast} from 'frontend-js-components-web';
 import {fetch} from 'frontend-js-web';
 import React from 'react';
 
@@ -81,9 +82,29 @@ const DELETABLE_VERSIONS = [
 	VERSIONS[1],
 ];
 
+const RESTORABLE_VERSIONS = [
+	{
+		...VERSIONS[0],
+		actions: {restore: {href: '/restore/HOME_V_2', method: 'POST'}},
+	},
+	VERSIONS[1],
+];
+
+const RESTORABLE_DELETABLE_VERSIONS = [
+	{
+		...VERSIONS[0],
+		actions: {
+			delete: {href: '/delete/HOME_V_2', method: 'DELETE'},
+			restore: {href: '/restore/HOME_V_2', method: 'POST'},
+		},
+	},
+	VERSIONS[1],
+];
+
 const mockFetch = fetch as jest.Mock;
 const mockHideProductMenu = hideProductMenuIfPresent as jest.Mock;
 const mockOpenConfirmModal = openConfirmModal as jest.Mock;
+const mockOpenToast = openToast as jest.Mock;
 const mockUseMediaQuery = useMediaQuery as jest.Mock;
 
 function mockLargeScreen() {
@@ -107,6 +128,12 @@ function queryCurrentItem() {
 	return document.querySelector('.lexicon-icon-sheets')?.closest('li');
 }
 
+async function openActions(item: HTMLElement) {
+	await userEvent.click(
+		within(item).getByRole('button', {name: 'show-options'})
+	);
+}
+
 function renderComponent({hasDraft = false} = {}) {
 	return render(
 		<VersionHistory
@@ -126,6 +153,18 @@ function renderComponent({hasDraft = false} = {}) {
 }
 
 describe('VersionHistory', () => {
+	const {location} = window;
+
+	beforeAll(() => {
+		delete (window as any).location;
+
+		(window as any).location = {...location, reload: jest.fn()};
+	});
+
+	afterAll(() => {
+		(window as any).location = location;
+	});
+
 	beforeEach(() => {
 		mockVersions([]);
 
@@ -485,6 +524,22 @@ describe('VersionHistory', () => {
 		expect(screen.getByText('no-results-found')).toBeInTheDocument();
 	});
 
+	it('filters the versions by version number', async () => {
+		mockLargeScreen();
+		mockVersions(VERSIONS);
+
+		renderComponent();
+
+		await waitFor(() =>
+			expect(screen.getAllByRole('option')).toHaveLength(3)
+		);
+
+		await userEvent.type(screen.getByLabelText('search-form'), '2');
+
+		expect(screen.getAllByRole('option')).toHaveLength(1);
+		expect(screen.getByText('Home Halloween')).toBeInTheDocument();
+	});
+
 	it('only renders the actions menu for versions with a delete action', async () => {
 		mockLargeScreen();
 		mockVersions(DELETABLE_VERSIONS);
@@ -546,5 +601,189 @@ describe('VersionHistory', () => {
 
 		expect(first).toBe(queryCurrentItem());
 		expect(first).toHaveClass('active');
+	});
+
+	it('only offers the restore action for versions with a restore action', async () => {
+		mockLargeScreen();
+		mockVersions(RESTORABLE_VERSIONS);
+
+		renderComponent();
+
+		await waitFor(() =>
+			expect(screen.getAllByRole('option')).toHaveLength(3)
+		);
+
+		const [current, restorable, notRestorable] =
+			screen.getAllByRole('option');
+
+		expect(
+			within(current).queryByRole('button', {name: 'show-options'})
+		).not.toBeInTheDocument();
+
+		expect(
+			within(notRestorable).queryByRole('button', {name: 'show-options'})
+		).not.toBeInTheDocument();
+
+		await openActions(restorable);
+
+		expect(
+			screen.getByRole('menuitem', {name: 'restore-version'})
+		).toBeInTheDocument();
+
+		expect(
+			screen.queryByRole('menuitem', {name: 'delete-version'})
+		).not.toBeInTheDocument();
+	});
+
+	it('offers the restore action before the delete action, split by a divider', async () => {
+		mockLargeScreen();
+		mockVersions(RESTORABLE_DELETABLE_VERSIONS);
+
+		renderComponent();
+
+		await waitFor(() =>
+			expect(screen.getAllByRole('option')).toHaveLength(3)
+		);
+
+		const [, version] = screen.getAllByRole('option');
+
+		await openActions(version);
+
+		const [restore, remove] = screen.getAllByRole('menuitem');
+
+		expect(restore).toHaveTextContent('restore-version');
+		expect(remove).toHaveTextContent('delete-version');
+
+		expect(
+			restore.querySelector('.lexicon-icon-restore')
+		).toBeInTheDocument();
+
+		expect(screen.getByRole('separator')).toBeInTheDocument();
+	});
+
+	it('restores the version once the confirmation is accepted', async () => {
+		mockLargeScreen();
+		mockVersions(RESTORABLE_VERSIONS);
+
+		renderComponent({hasDraft: true});
+
+		await waitFor(() =>
+			expect(screen.getAllByRole('option')).toHaveLength(3)
+		);
+
+		const [, restorable] = screen.getAllByRole('option');
+
+		await openActions(restorable);
+
+		await userEvent.click(
+			screen.getByRole('menuitem', {name: 'restore-version'})
+		);
+
+		expect(mockOpenConfirmModal).toHaveBeenCalledTimes(1);
+
+		await waitFor(() =>
+			expect(mockFetch).toHaveBeenCalledWith(
+				'/restore/HOME_V_2',
+				expect.objectContaining({method: 'POST'})
+			)
+		);
+	});
+
+	it('restores the version without confirmation when there is no draft', async () => {
+		mockLargeScreen();
+		mockVersions(RESTORABLE_VERSIONS);
+
+		renderComponent();
+
+		await waitFor(() =>
+			expect(screen.getAllByRole('option')).toHaveLength(3)
+		);
+
+		const [, restorable] = screen.getAllByRole('option');
+
+		await openActions(restorable);
+
+		await userEvent.click(
+			screen.getByRole('menuitem', {name: 'restore-version'})
+		);
+
+		await waitFor(() =>
+			expect(mockFetch).toHaveBeenCalledWith(
+				'/restore/HOME_V_2',
+				expect.objectContaining({method: 'POST'})
+			)
+		);
+
+		expect(mockOpenConfirmModal).not.toHaveBeenCalled();
+	});
+
+	it('does not restore the version when the confirmation is dismissed', async () => {
+		mockLargeScreen();
+		mockVersions(RESTORABLE_VERSIONS);
+		mockOpenConfirmModal.mockResolvedValue(false);
+
+		renderComponent({hasDraft: true});
+
+		await waitFor(() =>
+			expect(screen.getAllByRole('option')).toHaveLength(3)
+		);
+
+		const [, restorable] = screen.getAllByRole('option');
+
+		await openActions(restorable);
+
+		await userEvent.click(
+			screen.getByRole('menuitem', {name: 'restore-version'})
+		);
+
+		await waitFor(() =>
+			expect(mockOpenConfirmModal).toHaveBeenCalledTimes(1)
+		);
+
+		expect(mockFetch).not.toHaveBeenCalledWith(
+			'/restore/HOME_V_2',
+			expect.anything()
+		);
+	});
+
+	it('shows an error toast when the restore fails', async () => {
+		mockLargeScreen();
+
+		mockFetch.mockImplementation((url: string) =>
+			Promise.resolve(
+				url === '/restore/HOME_V_2'
+					? {
+							json: () =>
+								Promise.resolve({title: 'restore-failed'}),
+							ok: false,
+						}
+					: {
+							json: () =>
+								Promise.resolve({items: RESTORABLE_VERSIONS}),
+							ok: true,
+						}
+			)
+		);
+
+		renderComponent();
+
+		await waitFor(() =>
+			expect(screen.getAllByRole('option')).toHaveLength(3)
+		);
+
+		const [, restorable] = screen.getAllByRole('option');
+
+		await openActions(restorable);
+
+		await userEvent.click(
+			screen.getByRole('menuitem', {name: 'restore-version'})
+		);
+
+		await waitFor(() =>
+			expect(mockOpenToast).toHaveBeenCalledWith({
+				message: 'restore-failed',
+				type: 'danger',
+			})
+		);
 	});
 });

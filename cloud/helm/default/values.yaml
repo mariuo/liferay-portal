@@ -235,9 +235,9 @@ customInitContainers:
                                 -   ALL
                         seccompProfile:
                             type: RuntimeDefault
-    x-lpkg-sync:
+    x-marketplace-sync:
         -   containerTemplate: |
-                {{- if .lpkg.enabled }}
+                {{- if .marketplace.enabled }}
                 -   command:
                         -   bash
                         -   /liferay-init-scripts/deploy-sync.sh
@@ -245,16 +245,20 @@ customInitContainers:
                         -   name: LIFERAY_SYNC_DEST
                             value: /opt/liferay/deploy
                         -   name: LIFERAY_SYNC_INTERVAL
-                            value: {{ .lpkg.syncInterval | quote }}
+                            value: {{ .marketplace.syncInterval | quote }}
                         -   name: LIFERAY_SYNC_MARKER
-                            value: /opt/liferay/.liferay-lpkg-sync
+                            value: /opt/liferay/.liferay-marketplace-sync
                         -   name: LIFERAY_SYNC_PATTERN
                             value: "*.lpkg"
                         -   name: LIFERAY_SYNC_SOURCE
-                            value: /lpkg
+                            value: /marketplace
+                        -   name: POD_NAMESPACE
+                            valueFrom:
+                                fieldRef:
+                                    fieldPath: metadata.namespace
                     image: {{ printf "%s:%s" .image.repository (.image.tag | toString) }}
                     imagePullPolicy: {{ .image.pullPolicy }}
-                    name: liferay-lpkg-sync
+                    name: liferay-marketplace-sync
                     restartPolicy: Always
                     securityContext:
                         allowPrivilegeEscalation: false
@@ -265,11 +269,12 @@ customInitContainers:
                             type: RuntimeDefault
                     volumeMounts:
                         -   mountPath: /liferay-init-scripts/deploy-sync.sh
-                            name: {{ .lpkg.initScriptsVolumeName }}
+                            name: {{ .marketplace.initScriptsVolumeName }}
                             subPath: deploy-sync.sh
-                        -   mountPath: /lpkg
-                            name: liferay-lpkg
+                        -   mountPath: /marketplace
+                            name: liferay-marketplace
                             readOnly: true
+                            subPathExpr: $(POD_NAMESPACE)
                         -   mountPath: /opt/liferay
                             name: liferay-persistent-volume
                             subPath: liferay
@@ -375,14 +380,16 @@ livenessProbe:
     initialDelaySeconds: 60
     periodSeconds: 30
     timeoutSeconds: 5
-lpkg:
+marketplace:
+    csi:
+        driver: ""
+        volumeAttributes: {}
+        volumeHandle: ""
     enabled: false
     initScriptsVolumeName: liferay-init-scripts-default
-    syncInterval: 600
-marketplace:
-    enabled: false
     size: 10Gi
     storageClassName: ""
+    syncInterval: 600
 nameOverride: ""
 network:
     annotations: {}
@@ -415,6 +422,8 @@ overlay:
         tag: "1.66"
     initScriptsVolumeName: liferay-init-scripts-default
     type: ""
+persistence:
+    defaultStorageClassName: ""
 podLabels: {}
 podSecurityContext: {}
 portalBundleDenyList: []

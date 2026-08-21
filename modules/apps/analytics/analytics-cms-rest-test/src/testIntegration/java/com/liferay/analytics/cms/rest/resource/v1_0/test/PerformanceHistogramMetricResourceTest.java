@@ -9,12 +9,11 @@ import com.liferay.analytics.cms.rest.dto.v1_0.Histogram;
 import com.liferay.analytics.cms.rest.dto.v1_0.Metric;
 import com.liferay.analytics.cms.rest.dto.v1_0.PerformanceHistogramMetric;
 import com.liferay.analytics.cms.rest.resource.v1_0.PerformanceHistogramMetricResource;
-import com.liferay.analytics.settings.configuration.AnalyticsConfiguration;
+import com.liferay.analytics.test.util.AnalyticsCompanyConfigurationTemporarySwapper;
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.depot.constants.DepotConstants;
 import com.liferay.depot.model.DepotEntry;
 import com.liferay.depot.service.DepotEntryLocalService;
-import com.liferay.portal.configuration.test.util.CompanyConfigurationTemporarySwapper;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
@@ -23,12 +22,13 @@ import com.liferay.portal.kernel.test.util.MockHttp;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
-import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
 import com.liferay.portal.kernel.util.Http;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
+
+import jakarta.ws.rs.ForbiddenException;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -72,23 +72,15 @@ public class PerformanceHistogramMetricResourceTest
 	@Override
 	@Test
 	public void testGetPerformanceHistogramMetric() throws Exception {
-		try (CompanyConfigurationTemporarySwapper
-				companyConfigurationTemporarySwapper =
-					new CompanyConfigurationTemporarySwapper(
-						testCompany.getCompanyId(),
-						AnalyticsConfiguration.class.getName(),
-						HashMapDictionaryBuilder.<String, Object>put(
-							"liferayAnalyticsDataSourceId",
-							RandomTestUtil.nextLong()
-						).put(
-							"liferayAnalyticsEnableAllGroupIds", true
-						).put(
-							"liferayAnalyticsFaroBackendSecuritySignature",
-							RandomTestUtil.randomString()
-						).put(
-							"liferayAnalyticsFaroBackendURL",
-							"http://" + RandomTestUtil.randomString()
-						).build())) {
+		_testGetPerformanceHistogramMetric();
+		_testGetPerformanceHistogramMetricWithAnalyticsCloudNotConnected();
+	}
+
+	private void _testGetPerformanceHistogramMetric() throws Exception {
+		try (AnalyticsCompanyConfigurationTemporarySwapper
+				analyticsCompanyConfigurationTemporarySwapper =
+					new AnalyticsCompanyConfigurationTemporarySwapper(
+						testCompany.getCompanyId())) {
 
 			ReflectionTestUtil.setFieldValue(
 				_performanceHistogramMetricResource, "_http",
@@ -156,6 +148,16 @@ public class PerformanceHistogramMetricResourceTest
 			ReflectionTestUtil.setFieldValue(
 				_performanceHistogramMetricResource, "_http", _http);
 		}
+	}
+
+	private void _testGetPerformanceHistogramMetricWithAnalyticsCloudNotConnected() {
+		Assert.assertThrows(
+			ForbiddenException.class,
+			() ->
+				_performanceHistogramMetricResource.
+					getPerformanceHistogramMetric(
+						new Long[] {_depotEntry.getDepotEntryId()},
+						RandomTestUtil.nextInt(), "downloadsMetric"));
 	}
 
 	@DeleteAfterTestRun

@@ -28,6 +28,17 @@ export enum EventNames {
 	View = 'view',
 }
 
+/**
+ * The coarse classification the engine stores next to each asset's `assetType`.
+ * Every asset is either authored content (blogs, web content, forms, object
+ * entries) or an uploaded file (documents and media).
+ */
+
+export enum AssetObjectTypes {
+	Content = 'content',
+	File = 'file',
+}
+
 export enum AssetTypes {
 	Asset = 'Asset',
 	Blog = 'Blog',
@@ -282,7 +293,6 @@ export enum RangeKeyTimeRanges {
 
 export enum SegmentActivationScheduleTypes {
 	Batch = 'BATCH',
-	RealTime = 'REAL_TIME',
 }
 
 export enum SegmentActivationFrequencyTypes {
@@ -492,6 +502,12 @@ export const TIME_RANGE_LABELS = {
 	[RangeKeyTimeRanges.LastYear]: Liferay.Language.get('last-year'),
 	[RangeKeyTimeRanges.Yesterday]: Liferay.Language.get('yesterday'),
 };
+
+/**
+ * Fills the trend row on cards without a trend so that it keeps its height,
+ * leaving the value aligned with the sibling cards that do render a trend.
+ */
+export const TREND_PLACEHOLDER = '\u00A0';
 
 export const TWO_DAYS = '172800000';
 

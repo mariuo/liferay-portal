@@ -1,3 +1,4 @@
+{{- if .Values.liferay.enabled -}}
 {{- $gitops := .Values.gitops -}}
 {{- $layout := $gitops.layout -}}
 {{- $name := printf "%s-%s-app" $layout.projectId $layout.environmentId -}}
@@ -44,7 +45,7 @@ spec:
                     helm:
                         parameters:
                             -   name: global.deploymentName
-                                value: {{ .Values.clusterIdentity.deploymentName | quote }}
+                                value: {{ .Values.deploymentContext.deploymentName | quote }}
                             -   name: global.liferayServiceAccount.create
                                 value: "true"
                             -   name: global.liferayServiceAccount.name
@@ -82,3 +83,4 @@ spec:
                 syncOptions:
                     -   CreateNamespace=true
                     -   RespectIgnoreDifferences=true
+{{- end -}}

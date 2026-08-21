@@ -37,11 +37,13 @@ export default function buildState({
 			modifiedSlugs: new Set(),
 		},
 		invalids: new Map(),
+		operation: null,
 		publishedChildren:
 			structure.status === 'published'
 				? getChildrenUuids({root: structure})
 				: new Set(),
 		renamingItemUuid: null,
+		savedChildren: getChildrenUuids({root: structure}),
 		selection: [],
 		structure,
 		unsavedChanges: false,

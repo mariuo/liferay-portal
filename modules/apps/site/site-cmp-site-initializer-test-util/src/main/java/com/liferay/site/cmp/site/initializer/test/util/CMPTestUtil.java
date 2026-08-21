@@ -11,9 +11,12 @@ import com.liferay.depot.model.DepotEntry;
 import com.liferay.depot.service.DepotEntryLocalServiceUtil;
 import com.liferay.layout.page.template.model.LayoutPageTemplateEntry;
 import com.liferay.layout.page.template.service.LayoutPageTemplateEntryLocalServiceUtil;
+import com.liferay.object.constants.ObjectEntryFolderConstants;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectEntry;
+import com.liferay.object.model.ObjectEntryFolder;
 import com.liferay.object.service.ObjectDefinitionLocalServiceUtil;
+import com.liferay.object.service.ObjectEntryFolderLocalServiceUtil;
 import com.liferay.object.service.ObjectEntryLocalServiceUtil;
 import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.portal.kernel.exception.PortalException;
@@ -21,6 +24,10 @@ import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.GroupConstants;
 import com.liferay.portal.kernel.module.service.Snapshot;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
+import com.liferay.portal.kernel.security.auth.PrincipalThreadLocal;
+import com.liferay.portal.kernel.security.permission.PermissionChecker;
+import com.liferay.portal.kernel.security.permission.PermissionCheckerFactoryUtil;
+import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
 import com.liferay.portal.kernel.service.GroupLocalServiceUtil;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
@@ -47,26 +54,18 @@ public class CMPTestUtil {
 			ObjectEntry cmpProjectObjectEntry)
 		throws PortalException {
 
-		ObjectDefinition cmpProjectLinkObjectDefinition =
-			ObjectDefinitionLocalServiceUtil.
-				getObjectDefinitionByExternalReferenceCode(
-					"L_CMP_PROJECT_LINK", TestPropsValues.getCompanyId());
+		return _addObjectEntry(
+			null, "L_CMP_PROJECT_LINK", cmpProjectObjectEntry,
+			"r_cmpProjectToCMPProjectLinks_c_cmpProjectId");
+	}
 
-		return ObjectEntryLocalServiceUtil.addObjectEntry(
-			cmpProjectObjectEntry.getGroupId(),
-			cmpProjectObjectEntry.getUserId(),
-			cmpProjectLinkObjectDefinition.getObjectDefinitionId(), 0, null,
-			HashMapBuilder.<String, Serializable>put(
-				"classExternalReferenceCode", RandomTestUtil.randomString()
-			).put(
-				"className", RandomTestUtil.randomString()
-			).put(
-				"groupExternalReferenceCode", RandomTestUtil.randomString()
-			).put(
-				"r_cmpProjectToCMPProjectLinks_c_cmpProjectId",
-				cmpProjectObjectEntry.getObjectEntryId()
-			).build(),
-			ServiceContextTestUtil.getServiceContext());
+	public static ObjectEntry addCMPProjectLinkObjectEntry(
+			ObjectEntry cmpProjectObjectEntry, ObjectEntry linkedObjectEntry)
+		throws PortalException {
+
+		return _addObjectEntry(
+			linkedObjectEntry, "L_CMP_PROJECT_LINK", cmpProjectObjectEntry,
+			"r_cmpProjectToCMPProjectLinks_c_cmpProjectId");
 	}
 
 	public static ObjectEntry addCMPProjectObjectEntry()
@@ -103,25 +102,18 @@ public class CMPTestUtil {
 			ObjectEntry cmpTaskObjectEntry)
 		throws PortalException {
 
-		ObjectDefinition cmpTaskLinkObjectDefinition =
-			ObjectDefinitionLocalServiceUtil.
-				getObjectDefinitionByExternalReferenceCode(
-					"L_CMP_TASK_LINK", TestPropsValues.getCompanyId());
+		return _addObjectEntry(
+			null, "L_CMP_TASK_LINK", cmpTaskObjectEntry,
+			"r_cmpTaskToCMPTaskLinks_c_cmpTaskId");
+	}
 
-		return ObjectEntryLocalServiceUtil.addObjectEntry(
-			cmpTaskObjectEntry.getGroupId(), cmpTaskObjectEntry.getUserId(),
-			cmpTaskLinkObjectDefinition.getObjectDefinitionId(), 0, null,
-			HashMapBuilder.<String, Serializable>put(
-				"classExternalReferenceCode", RandomTestUtil.randomString()
-			).put(
-				"className", RandomTestUtil.randomString()
-			).put(
-				"groupExternalReferenceCode", RandomTestUtil.randomString()
-			).put(
-				"r_cmpTaskToCMPTaskLinks_c_cmpTaskId",
-				cmpTaskObjectEntry.getObjectEntryId()
-			).build(),
-			ServiceContextTestUtil.getServiceContext());
+	public static ObjectEntry addCMPTaskLinkObjectEntry(
+			ObjectEntry cmpTaskObjectEntry, ObjectEntry linkedObjectEntry)
+		throws PortalException {
+
+		return _addObjectEntry(
+			linkedObjectEntry, "L_CMP_TASK_LINK", cmpTaskObjectEntry,
+			"r_cmpTaskToCMPTaskLinks_c_cmpTaskId");
 	}
 
 	public static ObjectEntry addCMPTaskObjectEntry() throws PortalException {
@@ -153,6 +145,33 @@ public class CMPTestUtil {
 				"title", RandomTestUtil.randomString()
 			).build(),
 			serviceContext);
+	}
+
+	public static ObjectEntry addCMSBasicWebContentObjectEntry(
+			DepotEntry depotEntry, String title)
+		throws PortalException {
+
+		ObjectDefinition objectDefinition =
+			ObjectDefinitionLocalServiceUtil.
+				getObjectDefinitionByExternalReferenceCode(
+					"L_CMS_BASIC_WEB_CONTENT", depotEntry.getCompanyId());
+		ObjectEntryFolder objectEntryFolder =
+			ObjectEntryFolderLocalServiceUtil.
+				getObjectEntryFolderByExternalReferenceCode(
+					ObjectEntryFolderConstants.EXTERNAL_REFERENCE_CODE_CONTENTS,
+					depotEntry.getGroupId(), depotEntry.getCompanyId());
+
+		return ObjectEntryLocalServiceUtil.addObjectEntry(
+			depotEntry.getGroupId(), depotEntry.getUserId(),
+			objectDefinition.getObjectDefinitionId(),
+			objectEntryFolder.getObjectEntryFolderId(), null,
+			HashMapBuilder.<String, Serializable>put(
+				"title_i18n",
+				HashMapBuilder.put(
+					"en_US", title
+				).build()
+			).build(),
+			ServiceContextTestUtil.getServiceContext(depotEntry.getGroupId()));
 	}
 
 	public static Group getOrAddGroup(Class<?> clazz) throws Exception {
@@ -187,11 +206,63 @@ public class CMPTestUtil {
 		return group;
 	}
 
+	private static ObjectEntry _addObjectEntry(
+			ObjectEntry linkedObjectEntry,
+			String objectDefinitionExternalReferenceCode,
+			ObjectEntry objectEntry, String relationshipObjectFieldName)
+		throws PortalException {
+
+		String classExternalReferenceCode = RandomTestUtil.randomString();
+		String className = RandomTestUtil.randomString();
+		String groupExternalReferenceCode = RandomTestUtil.randomString();
+
+		if (linkedObjectEntry != null) {
+			classExternalReferenceCode =
+				linkedObjectEntry.getExternalReferenceCode();
+			className = linkedObjectEntry.getModelClassName();
+
+			Group group = GroupLocalServiceUtil.getGroup(
+				linkedObjectEntry.getGroupId());
+
+			groupExternalReferenceCode = group.getExternalReferenceCode();
+		}
+
+		ObjectDefinition objectDefinition =
+			ObjectDefinitionLocalServiceUtil.
+				getObjectDefinitionByExternalReferenceCode(
+					objectDefinitionExternalReferenceCode,
+					TestPropsValues.getCompanyId());
+
+		return ObjectEntryLocalServiceUtil.addObjectEntry(
+			objectEntry.getGroupId(), objectEntry.getUserId(),
+			objectDefinition.getObjectDefinitionId(), 0, null,
+			HashMapBuilder.<String, Serializable>put(
+				relationshipObjectFieldName, objectEntry.getObjectEntryId()
+			).put(
+				"classExternalReferenceCode", classExternalReferenceCode
+			).put(
+				"className", className
+			).put(
+				"groupExternalReferenceCode", groupExternalReferenceCode
+			).build(),
+			ServiceContextTestUtil.getServiceContext());
+	}
+
 	private static void _initialize(
 			boolean processBatchEngine, Class<?> clazz, Group group)
 		throws Exception {
 
+		PermissionChecker originalPermissionChecker =
+			PermissionThreadLocal.getPermissionChecker();
+
+		String originalName = PrincipalThreadLocal.getName();
+
 		try {
+			PermissionThreadLocal.setPermissionChecker(
+				PermissionCheckerFactoryUtil.create(TestPropsValues.getUser()));
+
+			PrincipalThreadLocal.setName(TestPropsValues.getUserId());
+
 			ServiceContextThreadLocal.pushServiceContext(
 				ServiceContextTestUtil.getServiceContext(group.getGroupId()));
 
@@ -225,6 +296,11 @@ public class CMPTestUtil {
 			}
 		}
 		finally {
+			PermissionThreadLocal.setPermissionChecker(
+				originalPermissionChecker);
+
+			PrincipalThreadLocal.setName(originalName);
+
 			ServiceContextThreadLocal.popServiceContext();
 		}
 	}
