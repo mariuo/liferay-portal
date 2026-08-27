@@ -35,6 +35,18 @@ public class NotificationRecipientSettingValueException
 
 	}
 
+	public static class RoleMustExist
+		extends NotificationRecipientSettingValueException {
+
+		public RoleMustExist(String externalReferenceCode) {
+			super(
+				"No role exists with the external reference code \"" +
+					externalReferenceCode + "\"",
+				"the-role-recipient-does-not-exist");
+		}
+
+	}
+
 	public static class ToMustNotBeNull
 		extends NotificationRecipientSettingValueException {
 
