@@ -25,6 +25,16 @@ public interface NotificationType {
 		User user, String body, NotificationContext notificationContext,
 		String subject);
 
+	public default List<NotificationRecipientSetting>
+		createNotificationRecipientSettings(
+			long notificationRecipientId,
+			NotificationContext notificationContext, Object[] recipients,
+			User user) {
+
+		return createNotificationRecipientSettings(
+			notificationRecipientId, recipients, user);
+	}
+
 	public List<NotificationRecipientSetting>
 		createNotificationRecipientSettings(
 			long notificationRecipientId, Object[] recipients, User user);

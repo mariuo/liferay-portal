@@ -106,6 +106,16 @@ public class NotificationUtil {
 
 	public static List<NotificationRecipientSetting>
 		toNotificationRecipientSetting(
+			long notificationRecipientId,
+			NotificationContext notificationContext,
+			NotificationType notificationType, Object[] recipients, User user) {
+
+		return notificationType.createNotificationRecipientSettings(
+			notificationRecipientId, notificationContext, recipients, user);
+	}
+
+	public static List<NotificationRecipientSetting>
+		toNotificationRecipientSetting(
 			long notificationRecipientId, NotificationType notificationType,
 			Object[] recipients, User user) {
 
