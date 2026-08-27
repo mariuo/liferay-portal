@@ -707,6 +707,78 @@ public class NotificationTemplateResourceTest
 			JSONCompareMode.NON_EXTENSIBLE);
 	}
 
+	@Test
+	public void testPostNotificationTemplateWithUserRecipientExternalReferenceCode()
+		throws Exception {
+
+		_user = UserTestUtil.addUser();
+
+		JSONObject userJSONObject = JSONUtil.put(
+			NotificationRecipientSettingConstants.
+				NAME_USER_EXTERNAL_REFERENCE_CODE,
+			_user.getExternalReferenceCode()
+		).put(
+			NotificationRecipientSettingConstants.NAME_USER_SCREEN_NAME,
+			_user.getScreenName()
+		);
+
+		// External reference code takes precedence over a stale screen name
+
+		_testPostNotificationTemplateWithRecipient(
+			JSONUtil.putAll(userJSONObject),
+			HashMapBuilder.<String, Object>put(
+				NotificationRecipientSettingConstants.
+					NAME_USER_EXTERNAL_REFERENCE_CODE,
+				_user.getExternalReferenceCode()
+			).put(
+				NotificationRecipientSettingConstants.NAME_USER_SCREEN_NAME,
+				RandomTestUtil.randomString()
+			).build(),
+			NotificationRecipientConstants.TYPE_USER);
+
+		// Unknown external reference code falls back to the screen name
+
+		_testPostNotificationTemplateWithRecipient(
+			JSONUtil.putAll(userJSONObject),
+			HashMapBuilder.<String, Object>put(
+				NotificationRecipientSettingConstants.
+					NAME_USER_EXTERNAL_REFERENCE_CODE,
+				RandomTestUtil.randomString()
+			).put(
+				NotificationRecipientSettingConstants.NAME_USER_SCREEN_NAME,
+				_user.getScreenName()
+			).build(),
+			NotificationRecipientConstants.TYPE_USER);
+
+		// Unknown external reference code and unknown screen name drop the
+		// recipient
+
+		_testPostNotificationTemplateWithRecipient(
+			JSONUtil.putAll(),
+			HashMapBuilder.<String, Object>put(
+				NotificationRecipientSettingConstants.
+					NAME_USER_EXTERNAL_REFERENCE_CODE,
+				RandomTestUtil.randomString()
+			).put(
+				NotificationRecipientSettingConstants.NAME_USER_SCREEN_NAME,
+				RandomTestUtil.randomString()
+			).build(),
+			NotificationRecipientConstants.TYPE_USER);
+
+		// Term values are preserved verbatim
+
+		_testPostNotificationTemplateWithRecipient(
+			JSONUtil.putAll(
+				JSONUtil.put(
+					NotificationRecipientSettingConstants.NAME_USER_SCREEN_NAME,
+					"[%OBJECT_AUTHOR%]")),
+			HashMapBuilder.<String, Object>put(
+				NotificationRecipientSettingConstants.NAME_USER_SCREEN_NAME,
+				"[%OBJECT_AUTHOR%]"
+			).build(),
+			NotificationRecipientConstants.TYPE_TERM);
+	}
+
 	@Override
 	protected NotificationTemplate randomNotificationTemplate()
 		throws Exception {
