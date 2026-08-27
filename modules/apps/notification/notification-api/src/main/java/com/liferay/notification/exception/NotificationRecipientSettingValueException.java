@@ -56,6 +56,18 @@ public class NotificationRecipientSettingValueException
 
 	}
 
+	public static class UserGroupMustExist
+		extends NotificationRecipientSettingValueException {
+
+		public UserGroupMustExist(String externalReferenceCode) {
+			super(
+				"No user group exists with the external reference code \"" +
+					externalReferenceCode + "\"",
+				"the-user-group-recipient-does-not-exist");
+		}
+
+	}
+
 	private NotificationRecipientSettingValueException(
 		String message, String messageKey) {
 
