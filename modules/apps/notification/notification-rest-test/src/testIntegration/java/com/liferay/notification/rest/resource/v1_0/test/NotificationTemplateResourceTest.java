@@ -24,12 +24,19 @@ import com.liferay.portal.kernel.json.JSONArray;
 import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
+import com.liferay.portal.kernel.model.Role;
+import com.liferay.portal.kernel.model.User;
+import com.liferay.portal.kernel.model.UserGroup;
 import com.liferay.portal.kernel.model.role.RoleConstants;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
+import com.liferay.portal.kernel.service.RoleLocalService;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.HTTPTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
+import com.liferay.portal.kernel.test.util.RoleTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
+import com.liferay.portal.kernel.test.util.UserGroupTestUtil;
+import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.Http;
 import com.liferay.portal.kernel.util.LocaleUtil;
@@ -193,6 +200,129 @@ public class NotificationTemplateResourceTest
 			ids.toString(), ids.contains(systemNotificationTemplate.getId()));
 	}
 
+	@Test
+	public void testGetNotificationTemplateWithEmailRecipientMetadata()
+		throws Exception {
+
+		_role = RoleTestUtil.addRole(RoleConstants.TYPE_REGULAR);
+		_userGroup = UserGroupTestUtil.addUserGroup();
+
+		NotificationTemplate notificationTemplate =
+			randomNotificationTemplate();
+
+		notificationTemplate.setRecipientType(
+			NotificationRecipientConstants.TYPE_EMAIL);
+		notificationTemplate.setRecipients(
+			new Object[] {
+				HashMapBuilder.<String, Object>put(
+					NotificationRecipientSettingConstants.NAME_BCC,
+					new Object[] {
+						Collections.singletonMap(
+							NotificationRecipientSettingConstants.
+								NAME_USER_GROUP_NAME,
+							_userGroup.getName())
+					}
+				).put(
+					NotificationRecipientSettingConstants.NAME_BCC_TYPE,
+					NotificationRecipientConstants.TYPE_USER_GROUP
+				).put(
+					NotificationRecipientSettingConstants.NAME_FROM,
+					RandomTestUtil.randomString()
+				).put(
+					NotificationRecipientSettingConstants.NAME_FROM_NAME,
+					Collections.singletonMap(
+						"en_US", RandomTestUtil.randomString())
+				).put(
+					NotificationRecipientSettingConstants.NAME_TO,
+					new Object[] {
+						Collections.singletonMap(
+							NotificationRecipientSettingConstants.
+								NAME_ROLE_NAME,
+							_role.getName())
+					}
+				).put(
+					NotificationRecipientSettingConstants.NAME_TO_TYPE,
+					NotificationRecipientConstants.TYPE_ROLE
+				).build()
+			});
+		notificationTemplate.setType(NotificationConstants.TYPE_EMAIL);
+
+		notificationTemplate = _addNotificationTemplate(notificationTemplate);
+
+		JSONAssert.assertEquals(
+			JSONUtil.put(
+				NotificationRecipientSettingConstants.NAME_BCC,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						NotificationRecipientSettingConstants.
+							NAME_USER_GROUP_EXTERNAL_REFERENCE_CODE,
+						_userGroup.getExternalReferenceCode()
+					).put(
+						NotificationRecipientSettingConstants.
+							NAME_USER_GROUP_NAME,
+						_userGroup.getName()
+					))
+			).put(
+				NotificationRecipientSettingConstants.NAME_BCC_TYPE,
+				NotificationRecipientConstants.TYPE_USER_GROUP
+			).put(
+				NotificationRecipientSettingConstants.NAME_TO,
+				JSONUtil.putAll(_toRoleJSONObject(_role.getName()))
+			).put(
+				NotificationRecipientSettingConstants.NAME_TO_TYPE,
+				NotificationRecipientConstants.TYPE_ROLE
+			).toString(),
+			JSONUtil.getValueAsString(
+				HTTPTestUtil.invokeToJSONObject(
+					null,
+					"notification/v1.0/notification-templates/" +
+						notificationTemplate.getId(),
+					Http.Method.GET),
+				"JSONArray/recipients", "JSONObject/0"),
+			JSONCompareMode.LENIENT);
+	}
+
+	@Test
+	public void testGetNotificationTemplateWithUserNotificationRecipientMetadata()
+		throws Exception {
+
+		_role = RoleTestUtil.addRole(RoleConstants.TYPE_REGULAR);
+
+		_testGetNotificationTemplateWithUserNotificationRecipientMetadata(
+			_toRoleJSONObject(_role.getName()),
+			NotificationRecipientSettingConstants.NAME_ROLE_NAME,
+			NotificationRecipientConstants.TYPE_ROLE, _role.getName());
+
+		_user = UserTestUtil.addUser();
+
+		_testGetNotificationTemplateWithUserNotificationRecipientMetadata(
+			JSONUtil.put(
+				NotificationRecipientSettingConstants.
+					NAME_USER_EXTERNAL_REFERENCE_CODE,
+				_user.getExternalReferenceCode()
+			).put(
+				NotificationRecipientSettingConstants.NAME_USER_SCREEN_NAME,
+				_user.getScreenName()
+			),
+			NotificationRecipientSettingConstants.NAME_USER_SCREEN_NAME,
+			NotificationRecipientConstants.TYPE_USER, _user.getScreenName());
+
+		_userGroup = UserGroupTestUtil.addUserGroup();
+
+		_testGetNotificationTemplateWithUserNotificationRecipientMetadata(
+			JSONUtil.put(
+				NotificationRecipientSettingConstants.
+					NAME_USER_GROUP_EXTERNAL_REFERENCE_CODE,
+				_userGroup.getExternalReferenceCode()
+			).put(
+				NotificationRecipientSettingConstants.NAME_USER_GROUP_NAME,
+				_userGroup.getName()
+			),
+			NotificationRecipientSettingConstants.NAME_USER_GROUP_NAME,
+			NotificationRecipientConstants.TYPE_USER_GROUP,
+			_userGroup.getName());
+	}
+
 	@Ignore
 	@Override
 	@Test
@@ -310,19 +440,13 @@ public class NotificationTemplateResourceTest
 			JSONUtil.put(
 				"to",
 				JSONUtil.putAll(
-					JSONUtil.put(
-						NotificationRecipientSettingConstants.NAME_ROLE_NAME,
+					_toRoleJSONObject(
 						AccountRoleConstants.
 							REQUIRED_ROLE_NAME_ACCOUNT_ADMINISTRATOR),
-					JSONUtil.put(
-						NotificationRecipientSettingConstants.NAME_ROLE_NAME,
+					_toRoleJSONObject(
 						AccountRoleConstants.REQUIRED_ROLE_NAME_ACCOUNT_MEMBER),
-					JSONUtil.put(
-						NotificationRecipientSettingConstants.NAME_ROLE_NAME,
-						RoleConstants.ORGANIZATION_ADMINISTRATOR),
-					JSONUtil.put(
-						NotificationRecipientSettingConstants.NAME_ROLE_NAME,
-						RoleConstants.ORGANIZATION_OWNER))
+					_toRoleJSONObject(RoleConstants.ORGANIZATION_ADMINISTRATOR),
+					_toRoleJSONObject(RoleConstants.ORGANIZATION_OWNER))
 			).put(
 				"toType", NotificationRecipientConstants.TYPE_ROLE
 			));
@@ -354,6 +478,136 @@ public class NotificationTemplateResourceTest
 				systemNotificationTemplate.getId());
 
 		Assert.assertFalse(notificationTemplate.getSystem());
+	}
+
+	@Test
+	public void testPostNotificationTemplateWithRecipientMetadata()
+		throws Exception {
+
+		_user = UserTestUtil.addUser();
+
+		NotificationTemplate notificationTemplate =
+			randomNotificationTemplate();
+
+		notificationTemplate.setRecipients(
+			new Object[] {
+				HashMapBuilder.<String, Object>put(
+					NotificationRecipientSettingConstants.
+						NAME_USER_EXTERNAL_REFERENCE_CODE,
+					_user.getExternalReferenceCode()
+				).put(
+					NotificationRecipientSettingConstants.NAME_USER_SCREEN_NAME,
+					_user.getScreenName()
+				).build()
+			});
+
+		notificationTemplate = _addNotificationTemplate(notificationTemplate);
+
+		JSONAssert.assertEquals(
+			JSONUtil.putAll(
+				JSONUtil.put(
+					NotificationRecipientSettingConstants.
+						NAME_USER_EXTERNAL_REFERENCE_CODE,
+					_user.getExternalReferenceCode()
+				).put(
+					NotificationRecipientSettingConstants.NAME_USER_SCREEN_NAME,
+					_user.getScreenName()
+				)
+			).toString(),
+			JSONUtil.getValueAsString(
+				HTTPTestUtil.invokeToJSONObject(
+					null,
+					"notification/v1.0/notification-templates/" +
+						notificationTemplate.getId(),
+					Http.Method.GET),
+				"JSONArray/recipients"),
+			JSONCompareMode.NON_EXTENSIBLE);
+	}
+
+	@Test
+	public void testPostNotificationTemplateWithRoleRecipientExternalReferenceCode()
+		throws Exception {
+
+		_role = RoleTestUtil.addRole(RoleConstants.TYPE_REGULAR);
+
+		// External reference code takes precedence over a stale name
+
+		_testPostNotificationTemplateWithRoleRecipient(
+			JSONUtil.putAll(_toRoleJSONObject(_role.getName())),
+			JSONUtil.put(
+				NotificationRecipientSettingConstants.
+					NAME_ROLE_EXTERNAL_REFERENCE_CODE,
+				_role.getExternalReferenceCode()
+			).put(
+				NotificationRecipientSettingConstants.NAME_ROLE_NAME,
+				RandomTestUtil.randomString()
+			));
+
+		// An unknown external reference code is rejected with a validation
+
+		// error, matching how object entries validate picklist entry keys
+
+		_testPostNotificationTemplateWithUnresolvableRecipient(
+			JSONUtil.put(
+				NotificationRecipientSettingConstants.
+					NAME_ROLE_EXTERNAL_REFERENCE_CODE,
+				RandomTestUtil.randomString()
+			).put(
+				NotificationRecipientSettingConstants.NAME_ROLE_NAME,
+				_role.getName()
+			),
+			NotificationRecipientConstants.TYPE_ROLE);
+
+		// Email recipient lists resolve the same way
+
+		NotificationTemplate notificationTemplate =
+			randomNotificationTemplate();
+
+		notificationTemplate.setRecipientType(
+			NotificationRecipientConstants.TYPE_EMAIL);
+		notificationTemplate.setRecipients(
+			new Object[] {
+				HashMapBuilder.<String, Object>put(
+					NotificationRecipientSettingConstants.NAME_FROM,
+					RandomTestUtil.randomString()
+				).put(
+					NotificationRecipientSettingConstants.NAME_FROM_NAME,
+					Collections.singletonMap(
+						"en_US", RandomTestUtil.randomString())
+				).put(
+					NotificationRecipientSettingConstants.NAME_TO,
+					new Object[] {
+						HashMapBuilder.put(
+							NotificationRecipientSettingConstants.
+								NAME_ROLE_EXTERNAL_REFERENCE_CODE,
+							_role.getExternalReferenceCode()
+						).put(
+							NotificationRecipientSettingConstants.
+								NAME_ROLE_NAME,
+							RandomTestUtil.randomString()
+						).build()
+					}
+				).put(
+					NotificationRecipientSettingConstants.NAME_TO_TYPE,
+					NotificationRecipientConstants.TYPE_ROLE
+				).build()
+			});
+		notificationTemplate.setType(NotificationConstants.TYPE_EMAIL);
+
+		notificationTemplate = _addNotificationTemplate(notificationTemplate);
+
+		JSONAssert.assertEquals(
+			JSONUtil.putAll(
+				_toRoleJSONObject(_role.getName())
+			).toString(),
+			JSONUtil.getValueAsString(
+				HTTPTestUtil.invokeToJSONObject(
+					null,
+					"notification/v1.0/notification-templates/" +
+						notificationTemplate.getId(),
+					Http.Method.GET),
+				"JSONArray/recipients", "JSONObject/0", "JSONArray/to"),
+			JSONCompareMode.NON_EXTENSIBLE);
 	}
 
 	@Override
@@ -489,6 +743,37 @@ public class NotificationTemplateResourceTest
 		return notificationTemplate;
 	}
 
+	private void
+			_testGetNotificationTemplateWithUserNotificationRecipientMetadata(
+				JSONObject expectedRecipientJSONObject, String recipientName,
+				String recipientType, String recipientValue)
+		throws Exception {
+
+		NotificationTemplate notificationTemplate =
+			randomNotificationTemplate();
+
+		notificationTemplate.setRecipients(
+			new Object[] {
+				Collections.singletonMap(recipientName, recipientValue)
+			});
+		notificationTemplate.setRecipientType(recipientType);
+
+		notificationTemplate = _addNotificationTemplate(notificationTemplate);
+
+		JSONAssert.assertEquals(
+			JSONUtil.putAll(
+				expectedRecipientJSONObject
+			).toString(),
+			JSONUtil.getValueAsString(
+				HTTPTestUtil.invokeToJSONObject(
+					null,
+					"notification/v1.0/notification-templates/" +
+						notificationTemplate.getId(),
+					Http.Method.GET),
+				"JSONArray/recipients"),
+			JSONCompareMode.NON_EXTENSIBLE);
+	}
+
 	private void _testPostNotificationTemplate(JSONObject recipientJSONObject)
 		throws Exception {
 
@@ -538,6 +823,80 @@ public class NotificationTemplateResourceTest
 					toDTO(notificationTemplateJSONObject.toString())));
 	}
 
+	private void _testPostNotificationTemplateWithUnresolvableRecipient(
+			JSONObject recipientJSONObject, String recipientType)
+		throws Exception {
+
+		Assert.assertEquals(
+			400,
+			HTTPTestUtil.invokeToHttpCode(
+				JSONUtil.put(
+					"name", RandomTestUtil.randomString()
+				).put(
+					"recipients", JSONUtil.putAll(recipientJSONObject)
+				).put(
+					"recipientType", recipientType
+				).put(
+					"type", NotificationConstants.TYPE_USER_NOTIFICATION
+				).toString(),
+				"notification/v1.0/notification-templates", Http.Method.POST));
+	}
+
+	private void _testPostNotificationTemplateWithRoleRecipient(
+			JSONArray expectedRecipientsJSONArray,
+			JSONObject recipientJSONObject)
+		throws Exception {
+
+		NotificationTemplate notificationTemplate =
+			randomNotificationTemplate();
+
+		notificationTemplate.setRecipients(
+			new Object[] {
+				HashMapBuilder.<String, Object>put(
+					NotificationRecipientSettingConstants.
+						NAME_ROLE_EXTERNAL_REFERENCE_CODE,
+					recipientJSONObject.getString(
+						NotificationRecipientSettingConstants.
+							NAME_ROLE_EXTERNAL_REFERENCE_CODE)
+				).put(
+					NotificationRecipientSettingConstants.NAME_ROLE_NAME,
+					recipientJSONObject.getString(
+						NotificationRecipientSettingConstants.NAME_ROLE_NAME)
+				).build()
+			});
+		notificationTemplate.setRecipientType(
+			NotificationRecipientConstants.TYPE_ROLE);
+
+		notificationTemplate = _addNotificationTemplate(notificationTemplate);
+
+		JSONAssert.assertEquals(
+			expectedRecipientsJSONArray.toString(),
+			JSONUtil.getValueAsString(
+				HTTPTestUtil.invokeToJSONObject(
+					null,
+					"notification/v1.0/notification-templates/" +
+						notificationTemplate.getId(),
+					Http.Method.GET),
+				"JSONArray/recipients"),
+			JSONCompareMode.NON_EXTENSIBLE);
+	}
+
+	private JSONObject _toRoleJSONObject(String roleName) throws Exception {
+		Role role = _roleLocalService.getRole(
+			TestPropsValues.getCompanyId(), roleName);
+
+		return JSONUtil.put(
+			NotificationRecipientSettingConstants.
+				NAME_ROLE_EXTERNAL_REFERENCE_CODE,
+			role.getExternalReferenceCode()
+		).put(
+			NotificationRecipientSettingConstants.NAME_ROLE_NAME, role.getName()
+		).put(
+			NotificationRecipientSettingConstants.NAME_ROLE_TYPE,
+			RoleConstants.getTypeLabel(role.getType())
+		);
+	}
+
 	@Inject
 	private JSONFactory _jsonFactory;
 
@@ -551,5 +910,17 @@ public class NotificationTemplateResourceTest
 	@DeleteAfterTestRun
 	private List<com.liferay.notification.model.NotificationTemplate>
 		_notificationTemplates = new ArrayList<>();
+
+	@DeleteAfterTestRun
+	private Role _role;
+
+	@Inject
+	private RoleLocalService _roleLocalService;
+
+	@DeleteAfterTestRun
+	private User _user;
+
+	@DeleteAfterTestRun
+	private UserGroup _userGroup;
 
 }
