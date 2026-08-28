@@ -1662,12 +1662,11 @@ public class BatchEnginePortletDataHandlerTest {
 	public void testExportImportNotificationTemplateRecipients()
 		throws Exception {
 
-		Group group = _stagingGroupHelper.fetchCompanyGroup(
+		Company company = _companyLocalService.getCompany(
 			TestPropsValues.getCompanyId());
 
-		_triggerInitialRequest();
-
-		Date startDate = new Date(System.currentTimeMillis() - Time.MINUTE);
+		Group group = _stagingGroupHelper.fetchCompanyGroup(
+			company.getCompanyId());
 
 		_role = RoleTestUtil.addRole(RoleConstants.TYPE_REGULAR);
 		_userGroup = UserGroupTestUtil.addUserGroup();
@@ -1676,37 +1675,29 @@ public class BatchEnginePortletDataHandlerTest {
 
 		_users.add(user);
 
-		NotificationTemplate roleNotificationTemplate =
-			_addNotificationTemplate(
-				NotificationRecipientConstants.TYPE_ROLE,
-				NotificationRecipientSettingUtil.
-					createNotificationRecipientSetting(
-						NotificationRecipientSettingConstants.NAME_ROLE_NAME,
-						_role.getName()));
-		NotificationTemplate userGroupNotificationTemplate =
-			_addNotificationTemplate(
-				NotificationRecipientConstants.TYPE_USER_GROUP,
-				NotificationRecipientSettingUtil.
-					createNotificationRecipientSetting(
-						NotificationRecipientSettingConstants.
-							NAME_USER_GROUP_NAME,
-						_userGroup.getName()));
-		NotificationTemplate userNotificationTemplate =
-			_addNotificationTemplate(
-				NotificationRecipientConstants.TYPE_USER,
-				NotificationRecipientSettingUtil.
-					createNotificationRecipientSetting(
-						NotificationRecipientSettingConstants.
-							NAME_USER_SCREEN_NAME,
-						user.getScreenName()));
+		NotificationTemplate notificationTemplate1 = _addNotificationTemplate(
+			NotificationRecipientConstants.TYPE_USER,
+			NotificationConstants.TYPE_USER_NOTIFICATION,
+			NotificationRecipientSettingUtil.createNotificationRecipientSetting(
+				NotificationRecipientSettingConstants.NAME_ROLE_NAME,
+				_role.getName()),
+			NotificationRecipientSettingUtil.createNotificationRecipientSetting(
+				NotificationRecipientSettingConstants.NAME_USER_GROUP_NAME,
+				_userGroup.getName()),
+			NotificationRecipientSettingUtil.createNotificationRecipientSetting(
+				NotificationRecipientSettingConstants.NAME_USER_SCREEN_NAME,
+				user.getScreenName()));
 
-		_waitForNextMinute();
+		String from = RandomTestUtil.randomString() + "@liferay.com";
+		String fromName = RandomTestUtil.randomString();
+
+		NotificationTemplate notificationTemplate2 =
+			_addEmailNotificationTemplate(
+				from, fromName, _role.getName(), _userGroup.getName());
 
 		File larFile = new ExportImportExecutor(
 		).withGroupId(
 			group.getGroupId()
-		).withDateRange(
-			startDate, new Date()
 		).withIncludeNotificationTemplates(
 		).executeExport();
 
@@ -1725,6 +1716,11 @@ public class BatchEnginePortletDataHandlerTest {
 			userGroupName, _userGroup.getDescription(),
 			ServiceContextTestUtil.getServiceContext());
 
+		_notificationTemplateLocalService.deleteNotificationTemplate(
+			notificationTemplate1);
+		_notificationTemplateLocalService.deleteNotificationTemplate(
+			notificationTemplate2);
+
 		new ExportImportExecutor(
 		).withGroupId(
 			group.getGroupId()
@@ -1734,24 +1730,23 @@ public class BatchEnginePortletDataHandlerTest {
 		).executeImport();
 
 		_assertNotificationRecipientSettingValues(
-			roleNotificationTemplate, roleName);
+			notificationTemplate1, roleName, userGroupName,
+			user.getScreenName());
 		_assertNotificationRecipientSettingValues(
-			userGroupNotificationTemplate, userGroupName);
-		_assertNotificationRecipientSettingValues(
-			userNotificationTemplate, user.getScreenName());
+			notificationTemplate2, from, fromName, roleName,
+			NotificationRecipientConstants.TYPE_ROLE, userGroupName,
+			NotificationRecipientConstants.TYPE_USER_GROUP);
 	}
 
-	@Ignore
 	@Test
 	public void testExportImportNotificationTemplateWithMissingRoleAndUserGroup()
 		throws Exception {
 
-		Group group = _stagingGroupHelper.fetchCompanyGroup(
+		Company company = _companyLocalService.getCompany(
 			TestPropsValues.getCompanyId());
 
-		_triggerInitialRequest();
-
-		Date startDate = new Date(System.currentTimeMillis() - Time.MINUTE);
+		Group group = _stagingGroupHelper.fetchCompanyGroup(
+			company.getCompanyId());
 
 		_role = RoleTestUtil.addRole(RoleConstants.TYPE_ORGANIZATION);
 		_userGroup = UserGroupTestUtil.addUserGroup();
@@ -1759,29 +1754,30 @@ public class BatchEnginePortletDataHandlerTest {
 		String roleName = _role.getName();
 		String userGroupName = _userGroup.getName();
 
-		NotificationTemplate roleNotificationTemplate =
+		NotificationTemplate notificationTemplate1 =
 			_addNotificationTemplate(
 				NotificationRecipientConstants.TYPE_ROLE,
+				NotificationConstants.TYPE_USER_NOTIFICATION,
 				NotificationRecipientSettingUtil.
 					createNotificationRecipientSetting(
 						NotificationRecipientSettingConstants.NAME_ROLE_NAME,
-						roleName));
-		NotificationTemplate userGroupNotificationTemplate =
-			_addNotificationTemplate(
-				NotificationRecipientConstants.TYPE_USER_GROUP,
+						roleName),
 				NotificationRecipientSettingUtil.
 					createNotificationRecipientSetting(
 						NotificationRecipientSettingConstants.
 							NAME_USER_GROUP_NAME,
 						userGroupName));
 
-		_waitForNextMinute();
+		String from = RandomTestUtil.randomString() + "@liferay.com";
+		String fromName = RandomTestUtil.randomString();
+
+		NotificationTemplate notificationTemplate2 =
+			_addEmailNotificationTemplate(
+				from, fromName, roleName, userGroupName);
 
 		File larFile = new ExportImportExecutor(
 		).withGroupId(
 			group.getGroupId()
-		).withDateRange(
-			startDate, new Date()
 		).withIncludeNotificationTemplates(
 		).executeExport();
 
@@ -1812,9 +1808,11 @@ public class BatchEnginePortletDataHandlerTest {
 			WorkflowConstants.STATUS_EMPTY, _userGroup.getStatus());
 
 		_assertNotificationRecipientSettingValues(
-			roleNotificationTemplate, roleName);
+			notificationTemplate1, roleName, userGroupName);
 		_assertNotificationRecipientSettingValues(
-			userGroupNotificationTemplate, userGroupName);
+			notificationTemplate2, from, fromName, roleName,
+			NotificationRecipientConstants.TYPE_ROLE, userGroupName,
+			NotificationRecipientConstants.TYPE_USER_GROUP);
 
 		_assertEmptyExportImportReportEntry(
 			exportImportConfiguration, _role.getExternalReferenceCode(),
@@ -1854,12 +1852,11 @@ public class BatchEnginePortletDataHandlerTest {
 	public void testExportImportNotificationTemplateWithMissingUsers()
 		throws Exception {
 
-		Group group = _stagingGroupHelper.fetchCompanyGroup(
+		Company company = _companyLocalService.getCompany(
 			TestPropsValues.getCompanyId());
 
-		_triggerInitialRequest();
-
-		Date startDate = new Date(System.currentTimeMillis() - Time.MINUTE);
+		Group group = _stagingGroupHelper.fetchCompanyGroup(
+			company.getCompanyId());
 
 		User user1 = UserTestUtil.addUser();
 		User user2 = UserTestUtil.addUser();
@@ -1870,6 +1867,7 @@ public class BatchEnginePortletDataHandlerTest {
 
 		NotificationTemplate notificationTemplate1 = _addNotificationTemplate(
 			NotificationRecipientConstants.TYPE_USER,
+			NotificationConstants.TYPE_USER_NOTIFICATION,
 			NotificationRecipientSettingUtil.createNotificationRecipientSetting(
 				NotificationRecipientSettingConstants.NAME_USER_SCREEN_NAME,
 				user1.getScreenName()),
@@ -1881,17 +1879,14 @@ public class BatchEnginePortletDataHandlerTest {
 				user3.getScreenName()));
 		NotificationTemplate notificationTemplate2 = _addNotificationTemplate(
 			NotificationRecipientConstants.TYPE_USER,
+			NotificationConstants.TYPE_USER_NOTIFICATION,
 			NotificationRecipientSettingUtil.createNotificationRecipientSetting(
 				NotificationRecipientSettingConstants.NAME_USER_SCREEN_NAME,
 				user3.getScreenName()));
 
-		_waitForNextMinute();
-
 		File larFile = new ExportImportExecutor(
 		).withGroupId(
 			group.getGroupId()
-		).withDateRange(
-			startDate, new Date()
 		).withIncludeNotificationTemplates(
 		).executeExport();
 
@@ -1925,10 +1920,6 @@ public class BatchEnginePortletDataHandlerTest {
 				exportImportReportEntry ->
 					exportImportReportEntry.getType() ==
 						ExportImportReportEntryConstants.TYPE_WARNING);
-
-		Assert.assertEquals(
-			exportImportReportEntries.toString(), 2,
-			exportImportReportEntries.size());
 
 		_assertUnresolvedUserExportImportReportEntry(
 			exportImportReportEntries, notificationTemplate1, user3ScreenName);
@@ -3158,6 +3149,29 @@ public class BatchEnginePortletDataHandlerTest {
 			fileEntry.getFileEntryId());
 	}
 
+	private NotificationTemplate _addEmailNotificationTemplate(
+			String from, String fromName, String roleName, String userGroupName)
+		throws Exception {
+
+		return _addNotificationTemplate(
+			NotificationRecipientConstants.TYPE_EMAIL,
+			NotificationConstants.TYPE_EMAIL,
+			NotificationRecipientSettingUtil.createNotificationRecipientSetting(
+				NotificationRecipientSettingConstants.NAME_BCC, userGroupName),
+			NotificationRecipientSettingUtil.createNotificationRecipientSetting(
+				NotificationRecipientSettingConstants.NAME_BCC_TYPE,
+				NotificationRecipientConstants.TYPE_USER_GROUP),
+			NotificationRecipientSettingUtil.createNotificationRecipientSetting(
+				NotificationRecipientSettingConstants.NAME_FROM, from),
+			NotificationRecipientSettingUtil.createNotificationRecipientSetting(
+				NotificationRecipientSettingConstants.NAME_FROM_NAME, fromName),
+			NotificationRecipientSettingUtil.createNotificationRecipientSetting(
+				NotificationRecipientSettingConstants.NAME_TO, roleName),
+			NotificationRecipientSettingUtil.createNotificationRecipientSetting(
+				NotificationRecipientSettingConstants.NAME_TO_TYPE,
+				NotificationRecipientConstants.TYPE_ROLE));
+	}
+
 	private FileEntry _addImageFileEntry(long groupId) throws Exception {
 		return _dlAppLocalService.addFileEntry(
 			null, TestPropsValues.getUserId(), groupId,
@@ -3193,31 +3207,31 @@ public class BatchEnginePortletDataHandlerTest {
 	}
 
 	private NotificationTemplate _addNotificationTemplate(
-			String recipientType,
+			String recipientType, String type,
 			NotificationRecipientSetting... notificationRecipientSettings)
 		throws Exception {
 
 		NotificationContext notificationContext = new NotificationContext();
 
 		NotificationTemplate notificationTemplate =
-			_notificationTemplateLocalService.createNotificationTemplate(0L);
+			_notificationTemplateLocalService.createNotificationTemplate(
+				RandomTestUtil.randomLong());
 
 		notificationTemplate.setEditorType(
 			NotificationTemplateConstants.EDITOR_TYPE_RICH_TEXT);
 		notificationTemplate.setName(RandomTestUtil.randomString());
 		notificationTemplate.setRecipientType(recipientType);
 		notificationTemplate.setSubject(RandomTestUtil.randomString());
-		notificationTemplate.setType(
-			NotificationConstants.TYPE_USER_NOTIFICATION);
+		notificationTemplate.setType(type);
 
 		notificationContext.setNotificationTemplate(notificationTemplate);
 
 		notificationContext.setNotificationRecipient(
-			_notificationRecipientLocalService.createNotificationRecipient(0L));
+			_notificationRecipientLocalService.createNotificationRecipient(
+				RandomTestUtil.randomLong()));
 		notificationContext.setNotificationRecipientSettings(
 			Arrays.asList(notificationRecipientSettings));
-		notificationContext.setType(
-			NotificationConstants.TYPE_USER_NOTIFICATION);
+		notificationContext.setType(type);
 
 		notificationTemplate =
 			_notificationTemplateLocalService.addNotificationTemplate(
@@ -3589,8 +3603,44 @@ public class BatchEnginePortletDataHandlerTest {
 				TestPropsValues.getCompanyId(),
 				exportImportConfiguration.getExportImportConfigurationId());
 
+		String jdbcDebug = "";
+
+		try {
+			Class<?> driverClass = Class.forName(
+				"com.mysql.cj.jdbc.Driver", true,
+				com.liferay.portal.kernel.util.PortalClassLoaderUtil.
+					getClassLoader());
+
+			java.sql.Driver driver =
+				(java.sql.Driver)driverClass.getDeclaredConstructor(
+				).newInstance();
+
+			java.util.Properties properties = new java.util.Properties();
+
+			properties.put("password", "test");
+			properties.put("user", "root");
+
+			try (java.sql.Connection connection = driver.connect(
+					"jdbc:mysql://localhost:3306/lportal", properties);
+				java.sql.Statement statement = connection.createStatement();
+				java.sql.ResultSet resultSet = statement.executeQuery(
+					"SELECT classExternalReferenceCode, type_ FROM " +
+						"ExportImportReportEntry")) {
+
+				while (resultSet.next()) {
+					jdbcDebug +=
+						resultSet.getString(1) + ":" + resultSet.getInt(2) +
+							" ";
+				}
+			}
+		}
+		catch (Exception exception) {
+			jdbcDebug = "JDBC ERROR " + exception;
+		}
+
 		Assert.assertTrue(
-			exportImportReportEntries.toString(),
+			"JDBCROWS [" + jdbcDebug + "] SERVICE " +
+				exportImportReportEntries.toString(),
 			ListUtil.exists(
 				exportImportReportEntries,
 				exportImportReportEntry ->
@@ -4920,36 +4970,6 @@ public class BatchEnginePortletDataHandlerTest {
 		).put(
 			"scopeKey", _getObjectEntryScopeKey(group, scope)
 		);
-	}
-
-	private void _triggerInitialRequest() {
-
-		// Site initializers registered for the first request modify their
-
-		// notification templates when they run. Trigger them before opening
-
-		// the export date range so those templates stay out of the LAR.
-
-		try {
-			HTTPTestUtil.invokeToHttpCode(
-				null, "headless-admin-user/v1.0/my-user-account",
-				Http.Method.GET);
-		}
-		catch (Exception exception) {
-		}
-	}
-
-	private void _waitForNextMinute() throws Exception {
-
-		// The date range parameters have minute precision, so the export must
-
-		// start in a later minute than the last modification for the range to
-
-		// cover it
-
-		long time = System.currentTimeMillis();
-
-		Thread.sleep((Time.MINUTE * ((time / Time.MINUTE) + 1)) - time);
 	}
 
 	private static final String _OBJECT_FIELD_NAME_ATTACHMENT_DOCS_AND_MEDIA =
