@@ -6702,6 +6702,202 @@ public class ObjectEntryLocalServiceTest {
 	}
 
 	@Test
+	public void testGetValuesListCount() throws Exception {
+		Set<Locale> availableLocales = LanguageUtil.getAvailableLocales(
+			TestPropsValues.getCompanyId());
+		Locale defaultLocale = LocaleUtil.getDefault();
+
+		CompanyTestUtil.resetCompanyLocales(
+			TestPropsValues.getCompanyId(),
+			new HashSet<>(Arrays.asList(LocaleUtil.BRAZIL, LocaleUtil.US)),
+			LocaleUtil.US);
+
+		ObjectField localizedObjectField = ObjectFieldUtil.createObjectField(
+			ObjectFieldConstants.BUSINESS_TYPE_TEXT,
+			ObjectFieldConstants.DB_TYPE_STRING, "Title", "title");
+
+		localizedObjectField.setLocalized(true);
+
+		ObjectDefinition objectDefinition =
+			ObjectDefinitionTestUtil.publishObjectDefinition(
+				Arrays.asList(
+					localizedObjectField,
+					ObjectFieldUtil.createObjectField(
+						ObjectFieldConstants.BUSINESS_TYPE_TEXT,
+						ObjectFieldConstants.DB_TYPE_STRING, true, false, null,
+						"Name", "name", false)),
+				ObjectDefinitionConstants.SCOPE_COMPANY);
+
+		// Object fields added after publishing live in the extension table
+
+		ObjectField extensionObjectField = _addCustomObjectField(
+			new TextObjectFieldBuilder(
+			).labelMap(
+				LocalizedMapUtil.getLocalizedMap(RandomTestUtil.randomString())
+			).name(
+				"a" + RandomTestUtil.randomString()
+			).objectDefinitionId(
+				objectDefinition.getObjectDefinitionId()
+			).build());
+
+		Assert.assertEquals(
+			objectDefinition.getExtensionDBTableName(),
+			extensionObjectField.getDBTableName());
+
+		ObjectEntry objectEntry1 = _addObjectEntry(
+			0, objectDefinition.getObjectDefinitionId(),
+			HashMapBuilder.<String, Serializable>put(
+				extensionObjectField.getName(), "foo"
+			).put(
+				"name", "Peter"
+			).put(
+				"title_i18n",
+				(Serializable)HashMapBuilder.<String, Serializable>put(
+					LocaleUtil.toLanguageId(LocaleUtil.BRAZIL), "Pedro"
+				).put(
+					LocaleUtil.toLanguageId(LocaleUtil.US), "Peter"
+				).build()
+			).build());
+		ObjectEntry objectEntry2 = _addObjectEntry(
+			0, objectDefinition.getObjectDefinitionId(),
+			HashMapBuilder.<String, Serializable>put(
+				extensionObjectField.getName(), "foo"
+			).put(
+				"name", "John"
+			).put(
+				"title_i18n",
+				(Serializable)HashMapBuilder.<String, Serializable>put(
+					LocaleUtil.toLanguageId(LocaleUtil.US), "John"
+				).build()
+			).build());
+		ObjectEntry objectEntry3 = _addObjectEntry(
+			0, objectDefinition.getObjectDefinitionId(),
+			HashMapBuilder.<String, Serializable>put(
+				extensionObjectField.getName(), "bar"
+			).put(
+				"name", "Peter"
+			).build());
+
+		ObjectEntry objectEntry4 = _addObjectEntry(
+			0, objectDefinition.getObjectDefinitionId(),
+			HashMapBuilder.<String, Serializable>put(
+				extensionObjectField.getName(), "foo"
+			).put(
+				"name", "Mary"
+			).build());
+
+		Column<?, Object> extensionColumn =
+			(Column<?, Object>)_objectFieldLocalService.getColumn(
+				objectDefinition.getObjectDefinitionId(),
+				extensionObjectField.getName());
+
+		Column<?, Object> nameColumn =
+			(Column<?, Object>)_objectFieldLocalService.getColumn(
+				objectDefinition.getObjectDefinitionId(), "name");
+
+		// No predicate
+
+		_testGetValuesListCount(
+			objectDefinition, null, null, objectEntry1, objectEntry2,
+			objectEntry3, objectEntry4);
+
+		// Predicate on an extension table column with no object entry in the
+		// trash counts on that table alone
+
+		try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
+				"com.liferay.object.service.impl.ObjectEntryLocalServiceImpl",
+				LoggerTestUtil.DEBUG)) {
+
+			_testGetValuesListCount(
+				objectDefinition, extensionColumn.eq("foo"), null, objectEntry1,
+				objectEntry2, objectEntry4);
+
+			String sql = _getObjectEntriesCountSQL(logCapture);
+
+			Assert.assertTrue(
+				sql,
+				sql.contains(
+					"from " + objectDefinition.getExtensionDBTableName()));
+			Assert.assertFalse(
+				sql, sql.contains(ObjectEntryTable.INSTANCE.getTableName()));
+		}
+
+		// An object entry in the trash brings ObjectEntry back, still without
+		// the tables the predicate does not read
+
+		_objectEntryLocalService.updateStatus(
+			TestPropsValues.getUserId(), objectEntry4.getObjectEntryId(),
+			WorkflowConstants.STATUS_IN_TRASH,
+			ServiceContextTestUtil.getServiceContext());
+
+		_testGetValuesListCount(
+			objectDefinition, null, null, objectEntry1, objectEntry2,
+			objectEntry3);
+
+		try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
+				"com.liferay.object.service.impl.ObjectEntryLocalServiceImpl",
+				LoggerTestUtil.DEBUG)) {
+
+			_testGetValuesListCount(
+				objectDefinition, extensionColumn.eq("foo"), null, objectEntry1,
+				objectEntry2);
+
+			String sql = _getObjectEntriesCountSQL(logCapture);
+
+			Assert.assertTrue(
+				sql,
+				sql.contains(
+					"from " + ObjectEntryTable.INSTANCE.getTableName()));
+			Assert.assertTrue(
+				sql, sql.contains(objectDefinition.getExtensionDBTableName()));
+			Assert.assertFalse(
+				sql,
+				sql.contains(
+					"join " + objectDefinition.getDBTableName() + " "));
+			Assert.assertFalse(
+				sql,
+				sql.contains(objectDefinition.getLocalizationDBTableName()));
+		}
+
+		// Predicate on a table column
+
+		_testGetValuesListCount(
+			objectDefinition, nameColumn.eq("Peter"), null, objectEntry1,
+			objectEntry3);
+
+		// Predicate on a localized column counts an entry with values in
+		// several languages once
+
+		Column<?, Object> titleColumn =
+			(Column<?, Object>)_objectFieldLocalService.getColumn(
+				objectDefinition.getObjectDefinitionId(), "title");
+
+		_testGetValuesListCount(
+			objectDefinition, titleColumn.eq("Peter"), null, objectEntry1);
+
+		// Predicate on table and extension table columns
+
+		_testGetValuesListCount(
+			objectDefinition,
+			extensionColumn.eq(
+				"foo"
+			).and(
+				nameColumn.eq("Peter")
+			),
+			null, objectEntry1);
+
+		// Search
+
+		_testGetValuesListCount(
+			objectDefinition, null, "Peter", objectEntry1, objectEntry3);
+
+		_objectDefinitionLocalService.deleteObjectDefinition(objectDefinition);
+
+		CompanyTestUtil.resetCompanyLocales(
+			TestPropsValues.getCompanyId(), availableLocales, defaultLocale);
+	}
+
+	@Test
 	public void testGetValuesListCountByObjectDefinitionIds() throws Exception {
 
 		// Add object entry on irrelevant group
@@ -6930,6 +7126,179 @@ public class ObjectEntryLocalServiceTest {
 			irrelevantObjectDefinition);
 
 		GroupTestUtil.deleteGroup(irrelevantGroup);
+	}
+
+	@Test
+	public void testGetValuesListCountWithObjectEntryVersioning()
+		throws Exception {
+
+		ObjectDefinition objectDefinition =
+			ObjectDefinitionTestUtil.publishObjectDefinition(
+				Collections.singletonList(
+					ObjectFieldUtil.createObjectField(
+						ObjectFieldConstants.BUSINESS_TYPE_TEXT,
+						ObjectFieldConstants.DB_TYPE_STRING, "Name", "name")),
+				ObjectDefinitionConstants.SCOPE_COMPANY);
+
+		ObjectEntry objectEntry1 = _addObjectEntry(
+			0, objectDefinition.getObjectDefinitionId(),
+			HashMapBuilder.<String, Serializable>put(
+				"name", "Peter"
+			).build());
+
+		_addObjectEntry(
+			0, objectDefinition.getObjectDefinitionId(),
+			HashMapBuilder.<String, Serializable>put(
+				"name", "John"
+			).build());
+
+		Column<?, Object> nameColumn =
+			(Column<?, Object>)_objectFieldLocalService.getColumn(
+				objectDefinition.getObjectDefinitionId(), "name");
+
+		// Without versioning every object entry is its own head, so the count
+		// reads the table alone
+
+		try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
+				"com.liferay.object.service.impl.ObjectEntryLocalServiceImpl",
+				LoggerTestUtil.DEBUG)) {
+
+			_testGetValuesListCount(
+				objectDefinition, nameColumn.eq("Peter"), null, objectEntry1);
+
+			String sql = _getObjectEntriesCountSQL(logCapture);
+
+			Assert.assertTrue(
+				sql, sql.contains("from " + objectDefinition.getDBTableName()));
+			Assert.assertFalse(
+				sql, sql.contains(ObjectEntryTable.INSTANCE.getTableName()));
+		}
+
+		// With versioning only head object entries count
+
+		objectDefinition.setEnableObjectEntryVersioning(true);
+
+		objectDefinition = _objectDefinitionLocalService.updateObjectDefinition(
+			objectDefinition);
+
+		try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
+				"com.liferay.object.service.impl.ObjectEntryLocalServiceImpl",
+				LoggerTestUtil.DEBUG)) {
+
+			_testGetValuesListCount(
+				objectDefinition, nameColumn.eq("Peter"), null, objectEntry1);
+
+			String sql = _getObjectEntriesCountSQL(logCapture);
+
+			Assert.assertTrue(
+				sql,
+				sql.contains(
+					"from " + ObjectEntryTable.INSTANCE.getTableName()));
+			Assert.assertTrue(
+				sql,
+				sql.contains(
+					ObjectEntryTable.INSTANCE.headObjectEntryId.getName()));
+		}
+
+		_objectDefinitionLocalService.deleteObjectDefinition(objectDefinition);
+	}
+
+	@Test
+	public void testGetValuesListCountWithRootObjectDefinition()
+		throws Exception {
+
+		ObjectField objectField = ObjectFieldUtil.createObjectField(
+			ObjectFieldConstants.BUSINESS_TYPE_TEXT,
+			ObjectFieldConstants.DB_TYPE_STRING, "Name", "name");
+
+		ObjectDefinition objectDefinitionA =
+			ObjectDefinitionTestUtil.publishObjectDefinition(
+				Collections.singletonList(objectField),
+				ObjectDefinitionConstants.SCOPE_COMPANY);
+		ObjectDefinition objectDefinitionAA =
+			ObjectDefinitionTestUtil.publishObjectDefinition(
+				Collections.singletonList(objectField),
+				ObjectDefinitionConstants.SCOPE_COMPANY);
+
+		Column<?, Object> nameColumn =
+			(Column<?, Object>)_objectFieldLocalService.getColumn(
+				objectDefinitionA.getObjectDefinitionId(), "name");
+
+		ObjectEntry objectEntryA1 = _addObjectEntry(
+			0, objectDefinitionA.getObjectDefinitionId(),
+			HashMapBuilder.<String, Serializable>put(
+				"name", "Peter"
+			).build());
+
+		// Outside a root model structure the count reads the table alone
+
+		try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
+				"com.liferay.object.service.impl.ObjectEntryLocalServiceImpl",
+				LoggerTestUtil.DEBUG)) {
+
+			_testGetValuesListCount(
+				objectDefinitionA, nameColumn.eq("Peter"), null, objectEntryA1);
+
+			String sql = _getObjectEntriesCountSQL(logCapture);
+
+			Assert.assertFalse(
+				sql, sql.contains(ObjectEntryTable.INSTANCE.getTableName()));
+		}
+
+		// Inside a root model structure the count reads ObjectEntry to tell
+		// root object entries apart
+
+		TreeTestUtil.bind(
+			_objectRelationshipLocalService,
+			Collections.singletonList(
+				ObjectRelationshipTestUtil.addObjectRelationship(
+					_objectRelationshipLocalService, objectDefinitionA,
+					objectDefinitionAA,
+					ObjectRelationshipConstants.DELETION_TYPE_CASCADE,
+					"objectRelationship")));
+
+		ObjectEntry objectEntryA2 = _addObjectEntry(
+			0, objectDefinitionA.getObjectDefinitionId(),
+			HashMapBuilder.<String, Serializable>put(
+				"name", "Peter"
+			).build());
+
+		_addObjectEntry(
+			0, objectDefinitionAA.getObjectDefinitionId(),
+			HashMapBuilder.<String, Serializable>put(
+				"name", "Peter"
+			).put(
+				"r_objectRelationship_" +
+					objectDefinitionA.getPKObjectFieldName(),
+				objectEntryA2.getObjectEntryId()
+			).build());
+
+		try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
+				"com.liferay.object.service.impl.ObjectEntryLocalServiceImpl",
+				LoggerTestUtil.DEBUG)) {
+
+			_testGetValuesListCount(
+				objectDefinitionA, nameColumn.eq("Peter"), null, objectEntryA1,
+				objectEntryA2);
+
+			String sql = _getObjectEntriesCountSQL(logCapture);
+
+			Assert.assertTrue(
+				sql,
+				sql.contains(
+					"from " + ObjectEntryTable.INSTANCE.getTableName()));
+			Assert.assertTrue(
+				sql,
+				sql.contains(
+					ObjectEntryTable.INSTANCE.rootObjectEntryId.getName()));
+		}
+
+		TreeTestUtil.deleteObjectDefinitionHierarchy(
+			_objectDefinitionLocalService,
+			new String[] {
+				objectDefinitionA.getName(), objectDefinitionAA.getName()
+			},
+			_objectEntryLocalService, _objectRelationshipLocalService);
 	}
 
 	@Test
@@ -11088,6 +11457,18 @@ public class ObjectEntryLocalServiceTest {
 		return sb.toString();
 	}
 
+	private String _getObjectEntriesCountSQL(LogCapture logCapture) {
+		for (LogEntry logEntry : logCapture.getLogEntries()) {
+			String message = logEntry.getMessage();
+
+			if (message.startsWith("Get object entries count: ")) {
+				return message;
+			}
+		}
+
+		throw new AssertionError("No object entries count SQL was logged");
+	}
+
 	private String _getRandomEmailAddress() {
 		return StringBundler.concat(
 			RandomTestUtil.randomString(), CharPool.AT,
@@ -11914,6 +12295,32 @@ public class ObjectEntryLocalServiceTest {
 			LocaleThreadLocal.setThemeDisplayLocale(originalThemeDisplayLocale);
 			LocaleThreadLocal.setSiteDefaultLocale(originalSiteDefaultLocale);
 		}
+	}
+
+	private void _testGetValuesListCount(
+			ObjectDefinition objectDefinition, Predicate predicate,
+			String search, ObjectEntry... expectedObjectEntries)
+		throws Exception {
+
+		Long[] groupIds = {0L};
+
+		Assert.assertEquals(
+			expectedObjectEntries.length,
+			_objectEntryLocalService.getValuesListCount(
+				groupIds, TestPropsValues.getCompanyId(),
+				TestPropsValues.getUserId(),
+				objectDefinition.getObjectDefinitionId(), predicate, false,
+				search));
+		Assert.assertEquals(
+			new HashSet<>(
+				TransformUtil.transformToList(
+					expectedObjectEntries, ObjectEntry::getObjectEntryId)),
+			new HashSet<>(
+				_objectEntryLocalService.getPrimaryKeys(
+					groupIds, TestPropsValues.getCompanyId(),
+					TestPropsValues.getUserId(),
+					objectDefinition.getObjectDefinitionId(), predicate, false,
+					search, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null)));
 	}
 
 	private void _testPartialUpdateObjectEntryExternalReferenceCode()
