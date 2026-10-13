@@ -5185,9 +5185,42 @@ public class ObjectEntryLocalServiceImpl
 			DynamicObjectDefinitionTableUtil.getDynamicObjectDefinitionTable(
 				true, objectDefinition, _objectFieldLocalService);
 
-		Predicate wherePredicate = _getObjectEntriesWherePredicate(
+		Predicate explicitPredicate = _getObjectEntriesExplicitPredicate(
 			dynamicObjectDefinitionTable, groupIds, objectDefinition, predicate,
 			preferApproved, search);
+
+		Set<String> explicitTableNames = _getTableNames(explicitPredicate);
+
+		// When no predicate reads ObjectEntry and the filter touches a single
+		// table of the definition, count on that table alone: every row of it
+		// is an object entry of this definition and company, so the implicit
+		// predicates add nothing
+
+		if (!explicitTableNames.contains(
+				ObjectEntryTable.INSTANCE.getTableName())) {
+
+			DynamicObjectDefinitionTable fromTable = _getSingleReferencedTable(
+				dynamicObjectDefinitionTable,
+				extensionDynamicObjectDefinitionTable, explicitTableNames);
+
+			if (fromTable != null) {
+				return DSLQueryFactoryUtil.count(
+				).from(
+					fromTable
+				).leftJoinOn(
+					dynamicObjectDefinitionLocalizationTable,
+					ObjectEntrySearchUtil.getLeftJoinLocalizationTablePredicate(
+						dynamicObjectDefinitionLocalizationTable, null,
+						fromTable.getPrimaryKeyColumn())
+				).where(
+					explicitPredicate
+				);
+			}
+		}
+
+		Predicate wherePredicate = Predicate.and(
+			_getObjectEntriesImplicitPredicate(objectDefinition),
+			explicitPredicate);
 
 		// Every table joins the object entry one to one on its primary key, so
 		// a table none of the predicates read cannot change which rows match
@@ -5232,6 +5265,71 @@ public class ObjectEntryLocalServiceImpl
 		}
 
 		return joinStep.where(wherePredicate);
+	}
+
+	private Predicate _getObjectEntriesExplicitPredicate(
+			DynamicObjectDefinitionTable dynamicObjectDefinitionTable,
+			Long[] groupIds, ObjectDefinition objectDefinition,
+			Predicate predicate, boolean preferApproved, String search)
+		throws PortalException {
+
+		// Everything the count reads that the definition's own tables do not
+		// already imply. A predicate that can never exclude a row of this
+		// definition is left out, so the optimizer only sees the ones that
+		// matter.
+
+		Predicate explicitPredicate = null;
+
+		if (!StringUtil.equals(
+				objectDefinition.getScope(),
+				ObjectDefinitionConstants.SCOPE_COMPANY) &&
+			ArrayUtil.isNotEmpty(groupIds)) {
+
+			explicitPredicate = ObjectEntryTable.INSTANCE.groupId.in(groupIds);
+		}
+
+		explicitPredicate = Predicate.and(
+			explicitPredicate,
+			Predicate.withParentheses(
+				_fillPredicate(objectDefinition, predicate, search)));
+
+		// rootObjectEntryId is 0 for every entry of a definition outside a
+		// root model structure
+
+		if (ArrayUtil.isNotEmpty(
+				objectDefinition.getRootObjectDefinitionIds())) {
+
+			explicitPredicate = Predicate.and(
+				explicitPredicate,
+				ObjectEntryTable.INSTANCE.rootObjectEntryId.eq(
+					ObjectEntryTable.INSTANCE.objectEntryId
+				).or(
+					ObjectEntryTable.INSTANCE.rootObjectEntryId.eq(0L)
+				).withParentheses());
+		}
+
+		if (_hasObjectEntriesInTrash(groupIds, objectDefinition)) {
+			explicitPredicate = Predicate.and(
+				explicitPredicate,
+				ObjectEntryTable.INSTANCE.status.neq(
+					WorkflowConstants.STATUS_IN_TRASH));
+		}
+
+		// headObjectEntryId equals objectEntryId for every entry of a
+		// definition without versioning
+
+		if (preferApproved ||
+			objectDefinition.isEnableObjectEntryVersioning()) {
+
+			explicitPredicate = Predicate.and(
+				explicitPredicate,
+				_getHeadObjectEntryPredicate(preferApproved));
+		}
+
+		return Predicate.and(
+			explicitPredicate,
+			_getPermissionWherePredicate(
+				dynamicObjectDefinitionTable, groupIds));
 	}
 
 	private GroupByStep _getObjectEntriesGroupByStep(
@@ -5320,30 +5418,33 @@ public class ObjectEntryLocalServiceImpl
 		);
 	}
 
+	private Predicate _getObjectEntriesImplicitPredicate(
+		ObjectDefinition objectDefinition) {
+
+		// True for every row of the definition's tables. Kept when the count
+		// starts from ObjectEntry, where it is what selects the definition.
+		// groupId = 0 for company scope is implied as well and is left out
+		// because it steers MySQL to the (groupId, uuid_) index.
+
+		return ObjectEntryTable.INSTANCE.companyId.eq(
+			objectDefinition.getCompanyId()
+		).and(
+			ObjectEntryTable.INSTANCE.objectDefinitionId.eq(
+				objectDefinition.getObjectDefinitionId())
+		);
+	}
+
 	private Predicate _getObjectEntriesWherePredicate(
 			DynamicObjectDefinitionTable dynamicObjectDefinitionTable,
 			Long[] groupIds, ObjectDefinition objectDefinition,
 			Predicate predicate, boolean preferApproved, String search)
 		throws PortalException {
 
-		return ObjectEntrySearchUtil.getObjectEntryIndexPredicate(
-			groupIds, objectDefinition,
-			Predicate.withParentheses(
-				_fillPredicate(objectDefinition, predicate, search))
-		).and(
-			ObjectEntryTable.INSTANCE.rootObjectEntryId.eq(
-				ObjectEntryTable.INSTANCE.objectEntryId
-			).or(
-				ObjectEntryTable.INSTANCE.rootObjectEntryId.eq(0L)
-			).withParentheses()
-		).and(
-			ObjectEntryTable.INSTANCE.status.neq(
-				WorkflowConstants.STATUS_IN_TRASH)
-		).and(
-			_getHeadObjectEntryPredicate(preferApproved)
-		).and(
-			_getPermissionWherePredicate(dynamicObjectDefinitionTable, groupIds)
-		);
+		return Predicate.and(
+			_getObjectEntriesImplicitPredicate(objectDefinition),
+			_getObjectEntriesExplicitPredicate(
+				dynamicObjectDefinitionTable, groupIds, objectDefinition,
+				predicate, preferApproved, search));
 	}
 
 	private Predicate _getObjectFieldPredicate(
@@ -6052,6 +6153,27 @@ public class ObjectEntryLocalServiceImpl
 		return selectExpressions.toArray(new Expression<?>[0]);
 	}
 
+	private DynamicObjectDefinitionTable _getSingleReferencedTable(
+		DynamicObjectDefinitionTable dynamicObjectDefinitionTable,
+		DynamicObjectDefinitionTable extensionDynamicObjectDefinitionTable,
+		Set<String> tableNames) {
+
+		boolean extension = tableNames.contains(
+			extensionDynamicObjectDefinitionTable.getTableName());
+		boolean main = tableNames.contains(
+			dynamicObjectDefinitionTable.getTableName());
+
+		if (extension && !main) {
+			return extensionDynamicObjectDefinitionTable;
+		}
+
+		if (main && !extension) {
+			return dynamicObjectDefinitionTable;
+		}
+
+		return null;
+	}
+
 	private int _getStatus(int status) {
 		if (status == WorkflowConstants.STATUS_PENDING) {
 			return WorkflowConstants.STATUS_DRAFT;
@@ -6098,6 +6220,10 @@ public class ObjectEntryLocalServiceImpl
 
 	private Set<String> _getTableNames(Predicate predicate) {
 		Set<String> tableNames = new HashSet<>();
+
+		if (predicate == null) {
+			return tableNames;
+		}
 
 		predicate.toSQL(
 			astNode -> {
@@ -6271,6 +6397,26 @@ public class ObjectEntryLocalServiceImpl
 				Validator.isNotNull(
 					ObjectFieldSettingUtil.getValue("script", objectField))) {
 
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private boolean _hasObjectEntriesInTrash(
+		Long[] groupIds, ObjectDefinition objectDefinition) {
+
+		if (ArrayUtil.isEmpty(groupIds)) {
+			return true;
+		}
+
+		for (Long groupId : groupIds) {
+			int count = objectEntryPersistence.countByG_ODI_S(
+				groupId, objectDefinition.getObjectDefinitionId(),
+				WorkflowConstants.STATUS_IN_TRASH);
+
+			if (count > 0) {
 				return true;
 			}
 		}
