@@ -10,15 +10,21 @@ import com.liferay.object.admin.rest.client.http.HttpInvoker;
 import com.liferay.object.admin.rest.dto.v1_0.ObjectFolder;
 import com.liferay.object.admin.rest.resource.v1_0.ObjectFolderResource;
 import com.liferay.object.constants.ObjectDefinitionConstants;
+import com.liferay.object.constants.ObjectEntryFolderConstants;
 import com.liferay.object.constants.ObjectFieldConstants;
 import com.liferay.object.field.util.ObjectFieldUtil;
 import com.liferay.object.model.ObjectDefinition;
+import com.liferay.object.model.ObjectField;
+import com.liferay.object.model.ObjectRelationship;
 import com.liferay.object.rest.dto.v1_0.ObjectEntry;
 import com.liferay.object.rest.manager.v1_0.ObjectEntryManager;
 import com.liferay.object.rest.manager.v1_0.ObjectEntryManagerRegistry;
 import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.object.service.ObjectEntryLocalService;
+import com.liferay.object.service.ObjectFieldLocalService;
+import com.liferay.object.service.ObjectRelationshipLocalService;
 import com.liferay.object.test.util.ObjectDefinitionTestUtil;
+import com.liferay.object.test.util.ObjectRelationshipTestUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringUtil;
 import com.liferay.portal.configuration.test.util.CompanyConfigurationTemporarySwapper;
@@ -30,11 +36,13 @@ import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
+import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.test.performance.PerformanceTimer;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.AssumeTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
+import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.transaction.Propagation;
@@ -48,6 +56,9 @@ import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.PropertiesUtil;
 import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.Validator;
+import com.liferay.portal.test.log.LogCapture;
+import com.liferay.portal.test.log.LogEntry;
+import com.liferay.portal.test.log.LoggerTestUtil;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
@@ -55,16 +66,21 @@ import com.liferay.portal.util.PortalInstances;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterContext;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterRegistry;
 import com.liferay.portal.vulcan.dto.converter.DefaultDTOConverterContext;
+import com.liferay.portal.vulcan.pagination.Page;
+import com.liferay.portal.vulcan.pagination.Pagination;
 
 import java.io.Closeable;
+import java.io.Serializable;
 
 import java.net.ConnectException;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.function.Predicate;
 
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -150,6 +166,138 @@ public class ObjectEntryPerformanceTest {
 				0, _customObjectDefinition.getObjectDefinitionId(),
 				QueryUtil.ALL_POS, QueryUtil.ALL_POS);
 		}
+	}
+
+	@Test
+	public void testGetObjectEntriesWithFilter() throws Exception {
+
+		// The customer's shape: the relationship is added after publishing,
+		// so its column lives in the extension table, and most entries have no
+		// related entry
+
+		_customObjectDefinition =
+			ObjectDefinitionTestUtil.addCustomObjectDefinition(
+				Collections.singletonList(
+					ObjectFieldUtil.createObjectField(
+						ObjectFieldConstants.BUSINESS_TYPE_TEXT,
+						ObjectFieldConstants.DB_TYPE_STRING, "Performance",
+						"performance")));
+		_customObjectDefinition =
+			_objectDefinitionLocalService.publishCustomObjectDefinition(
+				TestPropsValues.getUserId(),
+				_customObjectDefinition.getObjectDefinitionId());
+
+		_shipmentObjectDefinition =
+			ObjectDefinitionTestUtil.addCustomObjectDefinition(
+				Collections.singletonList(
+					ObjectFieldUtil.createObjectField(
+						ObjectFieldConstants.BUSINESS_TYPE_TEXT,
+						ObjectFieldConstants.DB_TYPE_STRING, "Shipment No",
+						"shipmentNo")));
+		_shipmentObjectDefinition =
+			_objectDefinitionLocalService.publishCustomObjectDefinition(
+				TestPropsValues.getUserId(),
+				_shipmentObjectDefinition.getObjectDefinitionId());
+
+		ObjectRelationship objectRelationship =
+			ObjectRelationshipTestUtil.addObjectRelationship(
+				_objectRelationshipLocalService, _shipmentObjectDefinition,
+				_customObjectDefinition);
+
+		ObjectField objectField = _objectFieldLocalService.getObjectField(
+			objectRelationship.getObjectFieldId2());
+
+		Assert.assertEquals(
+			_customObjectDefinition.getExtensionDBTableName(),
+			objectField.getDBTableName());
+
+		DTOConverterContext dtoConverterContext =
+			new DefaultDTOConverterContext(
+				false, Collections.emptyMap(), _dtoConverterRegistry, null,
+				LocaleUtil.getDefault(), null, TestPropsValues.getUser());
+
+		ObjectEntryManager objectEntryManager =
+			_objectEntryManagerRegistry.getObjectEntryManager(
+				_customObjectDefinition.getCompanyId(),
+				_customObjectDefinition.getStorageType());
+
+		ServiceContext serviceContext =
+			ServiceContextTestUtil.getServiceContext();
+
+		com.liferay.object.model.ObjectEntry shipmentObjectEntry =
+			_objectEntryLocalService.addObjectEntry(
+				0, TestPropsValues.getUserId(),
+				_shipmentObjectDefinition.getObjectDefinitionId(),
+				ObjectEntryFolderConstants.
+					PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT,
+				null,
+				HashMapBuilder.<String, Serializable>put(
+					"shipmentNo", RandomTestUtil.randomString()
+				).build(),
+				serviceContext);
+
+		int orphanObjectEntriesCount = 0;
+
+		for (int i = 0; i < _objectEntriesCount; i++) {
+			Map<String, Serializable> values =
+				HashMapBuilder.<String, Serializable>put(
+					"performance", RandomTestUtil.randomString()
+				).build();
+
+			if ((i % 10) == 0) {
+				values.put(
+					objectField.getName(),
+					shipmentObjectEntry.getObjectEntryId());
+			}
+			else {
+				orphanObjectEntriesCount++;
+			}
+
+			_objectEntryLocalService.addObjectEntry(
+				0, TestPropsValues.getUserId(),
+				_customObjectDefinition.getObjectDefinitionId(),
+				ObjectEntryFolderConstants.
+					PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT,
+				null, values, serviceContext);
+		}
+
+		Page<ObjectEntry> page = null;
+
+		try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
+				"com.liferay.object.service.impl.ObjectEntryLocalServiceImpl",
+				LoggerTestUtil.DEBUG);
+			PerformanceTimer performanceTimer = new PerformanceTimer(
+				GetterUtil.getInteger(
+					_properties.getProperty("object.entries.get.max.time")),
+				StringBundler.concat(
+					"Get object entries by object definition ",
+					_customObjectDefinition.getObjectDefinitionId(),
+					" filtered by an unset relationship"))) {
+
+			page = objectEntryManager.getObjectEntries(
+				_customObjectDefinition.getCompanyId(), _customObjectDefinition,
+				null, null, dtoConverterContext,
+				objectField.getName() + " eq '0'", Pagination.of(1, 1), null,
+				null);
+
+			// The count must read only the table the filter references
+
+			String sql = _getObjectEntriesCountSQL(logCapture);
+
+			Assert.assertTrue(
+				sql,
+				sql.contains(
+					_customObjectDefinition.getExtensionDBTableName()));
+			Assert.assertFalse(
+				sql,
+				sql.contains(_customObjectDefinition.getDBTableName() + " "));
+			Assert.assertFalse(sql, sql.contains("ObjectEntry"));
+		}
+
+		Assert.assertEquals(orphanObjectEntriesCount, page.getTotalCount());
+
+		_objectRelationshipLocalService.deleteObjectRelationship(
+			objectRelationship);
 	}
 
 	@Test
@@ -270,6 +418,18 @@ public class ObjectEntryPerformanceTest {
 		}
 	}
 
+	private String _getObjectEntriesCountSQL(LogCapture logCapture) {
+		for (LogEntry logEntry : logCapture.getLogEntries()) {
+			String message = logEntry.getMessage();
+
+			if (message.startsWith("Get object entries count: ")) {
+				return message;
+			}
+		}
+
+		throw new AssertionError("No object entries count SQL was logged");
+	}
+
 	private String _getPath(String pathSuffix) {
 		return StringBundler.concat(
 			"http://", _VIRTUAL_HOST_NAME, ":",
@@ -333,6 +493,15 @@ public class ObjectEntryPerformanceTest {
 	private ObjectEntryManagerRegistry _objectEntryManagerRegistry;
 
 	@Inject
+	private ObjectFieldLocalService _objectFieldLocalService;
+
+	@Inject
 	private ObjectFolderResource.Factory _objectFolderResourceFactory;
+
+	@Inject
+	private ObjectRelationshipLocalService _objectRelationshipLocalService;
+
+	@DeleteAfterTestRun
+	private ObjectDefinition _shipmentObjectDefinition;
 
 }
