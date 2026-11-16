@@ -856,6 +856,15 @@ public class ObjectServiceUpgradeStepRegistrator
 			new ObjectEntryGroupIdUpgradeProcess(
 				_classNameLocalService, _companyLocalService,
 				_friendlyURLEntryLocalService));
+
+		registry.register(
+			"13.13.3", "13.14.0",
+			UpgradeProcessFactory.addColumns("ObjectField", "priority INTEGER"),
+			UpgradeProcessFactory.addColumns(
+				"ObjectRelationship", "priority INTEGER"),
+			UpgradeProcessFactory.runSQL("update ObjectField set priority = 0"),
+			UpgradeProcessFactory.runSQL(
+				"update ObjectRelationship set priority = 0"));
 	}
 
 	private static final String[] _REMOVED_PANEL_CATEGORY_KEYS = {
