@@ -157,6 +157,7 @@ public class ObjectFieldDTOConverter
 						return finalObjectRelationship.
 							getExternalReferenceCode();
 					});
+				setPriority(objectField::getPriority);
 				setReadOnly(
 					() -> ObjectField.ReadOnly.create(
 						objectField.getReadOnly()));

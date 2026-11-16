@@ -134,6 +134,7 @@ public class ObjectRelationshipDTOConverter
 
 						return objectField.getName();
 					});
+				setPriority(serviceBuilderObjectRelationship::getPriority);
 				setReverse(serviceBuilderObjectRelationship::isReverse);
 				setSystem(serviceBuilderObjectRelationship::isSystem);
 				setType(
