@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
+import ClayButton from '@clayui/button';
 import ClayLabel from '@clayui/label';
 import ClayLink from '@clayui/link';
 import {
@@ -20,6 +21,7 @@ import {defaultFDSDataSetProps, formatActionURL} from '../../utils/fds';
 import {getEditObjectRelationshipURL} from '../../utils/url';
 import LabelRenderer from '../LabelRenderer';
 import ModalDeletionNotAllowed from '../ModalDeletionNotAllowed';
+import ModalReorderObjectFieldsAndRelationships from '../ModalReorderObjectFieldsAndRelationships';
 import {deleteRelationship} from '../ViewObjectDefinitions/objectDefinitionUtil';
 import {ModalAddObjectRelationship} from './ModalAddObjectRelationship';
 import {ModalDeleteObjectRelationship} from './ModalDeleteObjectRelationship';
@@ -157,6 +159,7 @@ export default function Relationships({
 	const [showDeleteModal, setShowDeleteModal] = useState(false);
 	const [showDeletionNotAllowedModal, setShowDeletionNotAllowedModal] =
 		useState(false);
+	const [showReorderModal, setShowReorderModal] = useState(false);
 
 	const fields = useMemo(() => {
 		const updatedTableFields = [...tableFields];
@@ -313,7 +316,26 @@ export default function Relationships({
 
 	return (
 		<>
+			<div className="d-flex justify-content-end px-3 py-2">
+				<ClayButton
+					displayType="secondary"
+					onClick={() => setShowReorderModal(true)}
+					size="sm"
+				>
+					{Liferay.Language.get('reorder')}
+				</ClayButton>
+			</div>
+
 			<FrontendDataSet {...frontendDataSetProps} />
+
+			{showReorderModal && (
+				<ModalReorderObjectFieldsAndRelationships
+					objectDefinitionExternalReferenceCode={
+						objectDefinitionExternalReferenceCode
+					}
+					onClose={() => setShowReorderModal(false)}
+				/>
+			)}
 
 			{showAddModal && (
 				<ModalAddObjectRelationship

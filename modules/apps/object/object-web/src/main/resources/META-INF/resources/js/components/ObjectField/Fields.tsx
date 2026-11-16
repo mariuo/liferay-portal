@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
+import ClayButton from '@clayui/button';
 import {Text} from '@clayui/core';
 import {FrontendDataSet} from '@liferay/frontend-data-set-web';
 import {stringUtils} from '@liferay/object-js-components-web';
@@ -14,6 +15,7 @@ import {getObjectFieldBusinessTypeLabel} from '../../utils/getObjectFieldBusines
 import FDSSourceDataRenderer from '../FDSPropsTransformer/FDSSourceDataRenderer';
 import LabelRenderer from '../LabelRenderer';
 import ModalDeletionNotAllowed from '../ModalDeletionNotAllowed';
+import ModalReorderObjectFieldsAndRelationships from '../ModalReorderObjectFieldsAndRelationships';
 import {ModalAddObjectField} from './ModalAddObjectField';
 import {ModalDeleteObjectField} from './ModalDeleteObjectField';
 import {handleTriggerDeleteObjectField} from './deleteObjectFieldUtil';
@@ -55,6 +57,7 @@ export default function Fields({
 		});
 
 	const [showAddFieldModal, setShowAddFieldModal] = useState(false);
+	const [showReorderModal, setShowReorderModal] = useState(false);
 
 	useEffect(() => {
 		Liferay.on('addObjectField', () => setShowAddFieldModal(true));
@@ -202,7 +205,26 @@ export default function Fields({
 
 	return (
 		<>
+			<div className="d-flex justify-content-end px-3 py-2">
+				<ClayButton
+					displayType="secondary"
+					onClick={() => setShowReorderModal(true)}
+					size="sm"
+				>
+					{Liferay.Language.get('reorder')}
+				</ClayButton>
+			</div>
+
 			<FrontendDataSet {...frontendDataSetProps} />
+
+			{showReorderModal && (
+				<ModalReorderObjectFieldsAndRelationships
+					objectDefinitionExternalReferenceCode={
+						objectDefinitionExternalReferenceCode
+					}
+					onClose={() => setShowReorderModal(false)}
+				/>
+			)}
 
 			{showAddFieldModal && (
 				<ModalAddObjectField
