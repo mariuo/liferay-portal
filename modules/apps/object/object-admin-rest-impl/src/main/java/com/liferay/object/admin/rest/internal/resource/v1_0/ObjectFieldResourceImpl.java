@@ -15,6 +15,7 @@ import com.liferay.object.admin.rest.internal.dto.v1_0.util.ObjectFieldUtil;
 import com.liferay.object.admin.rest.internal.odata.entity.v1_0.ObjectFieldEntityModel;
 import com.liferay.object.admin.rest.resource.v1_0.ObjectFieldResource;
 import com.liferay.object.service.ObjectDefinitionLocalService;
+import com.liferay.object.service.ObjectFieldLocalService;
 import com.liferay.object.service.ObjectFieldService;
 import com.liferay.object.service.ObjectFieldSettingLocalService;
 import com.liferay.object.service.ObjectFilterLocalService;
@@ -171,7 +172,7 @@ public class ObjectFieldResourceImpl extends BaseObjectFieldResourceImpl {
 			() -> _getListTypeDefinitionId(
 				objectField, objectFieldId, listTypeDefinitionId));
 
-		return _toObjectField(
+		com.liferay.object.model.ObjectField serviceBuilderObjectField =
 			_objectFieldService.updateObjectField(
 				objectField.getExternalReferenceCode(), objectFieldId,
 				objectField.getListTypeDefinitionId(),
@@ -193,7 +194,17 @@ public class ObjectFieldResourceImpl extends BaseObjectFieldResourceImpl {
 				ObjectFieldSettingUtil.toObjectFieldSettings(
 					groupLocalService, objectField.getListTypeDefinitionId(),
 					objectField, _objectFieldSettingLocalService,
-					_objectFilterLocalService)));
+					_objectFilterLocalService));
+
+		if (objectField.getPriority() != null) {
+			serviceBuilderObjectField.setPriority(objectField.getPriority());
+
+			serviceBuilderObjectField =
+				_objectFieldLocalService.updateObjectField(
+					serviceBuilderObjectField);
+		}
+
+		return _toObjectField(serviceBuilderObjectField);
 	}
 
 	@Override
@@ -378,6 +389,9 @@ public class ObjectFieldResourceImpl extends BaseObjectFieldResourceImpl {
 	@Reference(target = DTOConverterConstants.OBJECT_FIELD_DTO_CONVERTER)
 	private DTOConverter<com.liferay.object.model.ObjectField, ObjectField>
 		_objectFieldDTOConverter;
+
+	@Reference
+	private ObjectFieldLocalService _objectFieldLocalService;
 
 	@Reference
 	private ObjectFieldService _objectFieldService;
