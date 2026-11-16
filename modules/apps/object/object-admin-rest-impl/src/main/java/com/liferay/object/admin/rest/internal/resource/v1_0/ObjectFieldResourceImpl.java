@@ -239,6 +239,13 @@ public class ObjectFieldResourceImpl extends BaseObjectFieldResourceImpl {
 			String search, Filter filter, Pagination pagination, Sort[] sorts)
 		throws Exception {
 
+		if (sorts == null) {
+			sorts = new Sort[] {
+				new Sort(Field.PRIORITY, Sort.INT_TYPE, false),
+				new Sort(Field.ENTRY_CLASS_PK, Sort.LONG_TYPE, false)
+			};
+		}
+
 		return SearchUtil.search(
 			HashMapBuilder.put(
 				"create",
