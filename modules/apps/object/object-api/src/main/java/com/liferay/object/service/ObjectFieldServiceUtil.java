@@ -90,6 +90,12 @@ public class ObjectFieldServiceUtil {
 			readOnlyConditionExpression, required, state, objectFieldSettings);
 	}
 
+	public static ObjectField updatePriority(long objectFieldId, int priority)
+		throws PortalException {
+
+		return getService().updatePriority(objectFieldId, priority);
+	}
+
 	public static ObjectFieldService getService() {
 		return _serviceSnapshot.get();
 	}
@@ -98,4 +104,4 @@ public class ObjectFieldServiceUtil {
 		new Snapshot<>(ObjectFieldServiceUtil.class, ObjectFieldService.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1699148342
+// LIFERAY-SERVICE-BUILDER-HASH:-1444384203

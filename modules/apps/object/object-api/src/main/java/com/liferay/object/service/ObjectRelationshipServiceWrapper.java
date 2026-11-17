@@ -128,6 +128,15 @@ public class ObjectRelationshipServiceWrapper
 	}
 
 	@Override
+	public com.liferay.object.model.ObjectRelationship updatePriority(
+			long objectRelationshipId, int priority)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _objectRelationshipService.updatePriority(
+			objectRelationshipId, priority);
+	}
+
+	@Override
 	public ObjectRelationshipService getWrappedService() {
 		return _objectRelationshipService;
 	}
@@ -142,4 +151,4 @@ public class ObjectRelationshipServiceWrapper
 	private ObjectRelationshipService _objectRelationshipService;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-282406461
+// LIFERAY-SERVICE-BUILDER-HASH:-715609664

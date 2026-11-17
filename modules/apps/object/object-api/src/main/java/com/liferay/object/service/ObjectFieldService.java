@@ -80,5 +80,8 @@ public interface ObjectFieldService extends BaseService {
 			List<ObjectFieldSetting> objectFieldSettings)
 		throws PortalException;
 
+	public ObjectField updatePriority(long objectFieldId, int priority)
+		throws PortalException;
+
 }
-// LIFERAY-SERVICE-BUILDER-HASH:849419468
+// LIFERAY-SERVICE-BUILDER-HASH:-1378624363

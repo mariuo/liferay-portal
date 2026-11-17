@@ -92,6 +92,14 @@ public class ObjectFieldServiceWrapper
 	}
 
 	@Override
+	public com.liferay.object.model.ObjectField updatePriority(
+			long objectFieldId, int priority)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _objectFieldService.updatePriority(objectFieldId, priority);
+	}
+
+	@Override
 	public ObjectFieldService getWrappedService() {
 		return _objectFieldService;
 	}
@@ -104,4 +112,4 @@ public class ObjectFieldServiceWrapper
 	private ObjectFieldService _objectFieldService;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-77866930
+// LIFERAY-SERVICE-BUILDER-HASH:350575603

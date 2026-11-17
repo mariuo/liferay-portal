@@ -97,5 +97,9 @@ public interface ObjectRelationshipService extends BaseService {
 			Map<Locale, String> labelMap, ObjectField objectField)
 		throws PortalException;
 
+	public ObjectRelationship updatePriority(
+			long objectRelationshipId, int priority)
+		throws PortalException;
+
 }
-// LIFERAY-SERVICE-BUILDER-HASH:703295495
+// LIFERAY-SERVICE-BUILDER-HASH:529588908

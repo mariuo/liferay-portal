@@ -450,8 +450,13 @@ public interface ObjectRelationshipLocalService
 			Map<Locale, String> labelMap, ObjectField objectField)
 		throws PortalException;
 
+	@Indexable(type = IndexableType.REINDEX)
+	public ObjectRelationship updatePriority(
+			long objectRelationshipId, int priority)
+		throws PortalException;
+
 	public void updateUserId(long companyId, long oldUserId, long newUserId)
 		throws PortalException;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1669235983
+// LIFERAY-SERVICE-BUILDER-HASH:-1372415112

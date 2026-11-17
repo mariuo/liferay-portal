@@ -224,6 +224,46 @@ public class ObjectFieldServiceHttp {
 		}
 	}
 
+	public static com.liferay.object.model.ObjectField updatePriority(
+			HttpPrincipal httpPrincipal, long objectFieldId, int priority)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		try {
+			MethodKey methodKey = new MethodKey(
+				ObjectFieldServiceUtil.class, "updatePriority",
+				_updatePriorityParameterTypes4);
+
+			MethodHandler methodHandler = new MethodHandler(
+				methodKey, objectFieldId, priority);
+
+			Object returnObj = null;
+
+			try {
+				returnObj = TunnelUtil.invoke(httpPrincipal, methodHandler);
+			}
+			catch (Exception exception) {
+				if (exception instanceof
+						com.liferay.portal.kernel.exception.PortalException) {
+
+					throw (com.liferay.portal.kernel.exception.PortalException)
+						exception;
+				}
+
+				throw new com.liferay.portal.kernel.exception.SystemException(
+					exception);
+			}
+
+			return (com.liferay.object.model.ObjectField)returnObj;
+		}
+		catch (com.liferay.portal.kernel.exception.SystemException
+					systemException) {
+
+			_log.error(systemException, systemException);
+
+			throw systemException;
+		}
+	}
+
 	private static Log _log = LogFactoryUtil.getLog(
 		ObjectFieldServiceHttp.class);
 
@@ -245,6 +285,8 @@ public class ObjectFieldServiceHttp {
 			java.util.Map.class, boolean.class, String.class, String.class,
 			String.class, boolean.class, boolean.class, java.util.List.class
 		};
+	private static final Class<?>[] _updatePriorityParameterTypes4 =
+		new Class[] {long.class, int.class};
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:718157227
+// LIFERAY-SERVICE-BUILDER-HASH:-345428046

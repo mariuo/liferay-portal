@@ -390,6 +390,47 @@ public class ObjectRelationshipServiceHttp {
 		}
 	}
 
+	public static com.liferay.object.model.ObjectRelationship updatePriority(
+			HttpPrincipal httpPrincipal, long objectRelationshipId,
+			int priority)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		try {
+			MethodKey methodKey = new MethodKey(
+				ObjectRelationshipServiceUtil.class, "updatePriority",
+				_updatePriorityParameterTypes8);
+
+			MethodHandler methodHandler = new MethodHandler(
+				methodKey, objectRelationshipId, priority);
+
+			Object returnObj = null;
+
+			try {
+				returnObj = TunnelUtil.invoke(httpPrincipal, methodHandler);
+			}
+			catch (Exception exception) {
+				if (exception instanceof
+						com.liferay.portal.kernel.exception.PortalException) {
+
+					throw (com.liferay.portal.kernel.exception.PortalException)
+						exception;
+				}
+
+				throw new com.liferay.portal.kernel.exception.SystemException(
+					exception);
+			}
+
+			return (com.liferay.object.model.ObjectRelationship)returnObj;
+		}
+		catch (com.liferay.portal.kernel.exception.SystemException
+					systemException) {
+
+			_log.error(systemException, systemException);
+
+			throw systemException;
+		}
+	}
+
 	private static Log _log = LogFactoryUtil.getLog(
 		ObjectRelationshipServiceHttp.class);
 
@@ -422,6 +463,8 @@ public class ObjectRelationshipServiceHttp {
 			java.util.Map.class, boolean.class, java.util.Map.class,
 			com.liferay.object.model.ObjectField.class
 		};
+	private static final Class<?>[] _updatePriorityParameterTypes8 =
+		new Class[] {long.class, int.class};
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1860049716
+// LIFERAY-SERVICE-BUILDER-HASH:1842431027

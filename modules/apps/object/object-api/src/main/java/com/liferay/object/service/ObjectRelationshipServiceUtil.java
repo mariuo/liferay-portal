@@ -116,6 +116,13 @@ public class ObjectRelationshipServiceUtil {
 			deletionType, descriptionMap, edge, labelMap, objectField);
 	}
 
+	public static ObjectRelationship updatePriority(
+			long objectRelationshipId, int priority)
+		throws PortalException {
+
+		return getService().updatePriority(objectRelationshipId, priority);
+	}
+
 	public static ObjectRelationshipService getService() {
 		return _serviceSnapshot.get();
 	}
@@ -126,4 +133,4 @@ public class ObjectRelationshipServiceUtil {
 			ObjectRelationshipService.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1776371229
+// LIFERAY-SERVICE-BUILDER-HASH:343306482

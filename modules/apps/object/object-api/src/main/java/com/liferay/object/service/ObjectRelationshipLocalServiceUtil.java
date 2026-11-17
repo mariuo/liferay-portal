@@ -596,6 +596,13 @@ public class ObjectRelationshipLocalServiceUtil {
 			deletionType, descriptionMap, edge, labelMap, objectField);
 	}
 
+	public static ObjectRelationship updatePriority(
+			long objectRelationshipId, int priority)
+		throws PortalException {
+
+		return getService().updatePriority(objectRelationshipId, priority);
+	}
+
 	public static void updateUserId(
 			long companyId, long oldUserId, long newUserId)
 		throws PortalException {
@@ -613,4 +620,4 @@ public class ObjectRelationshipLocalServiceUtil {
 			ObjectRelationshipLocalService.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:1426069857
+// LIFERAY-SERVICE-BUILDER-HASH:-1037962954

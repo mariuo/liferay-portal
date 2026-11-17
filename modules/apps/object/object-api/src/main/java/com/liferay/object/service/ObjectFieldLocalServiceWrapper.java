@@ -676,6 +676,14 @@ public class ObjectFieldLocalServiceWrapper
 	}
 
 	@Override
+	public com.liferay.object.model.ObjectField updatePriority(
+			long objectFieldId, int priority)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _objectFieldLocalService.updatePriority(objectFieldId, priority);
+	}
+
+	@Override
 	public com.liferay.object.model.ObjectField updateRequired(
 			long objectFieldId, boolean required)
 		throws com.liferay.portal.kernel.exception.PortalException {
@@ -742,4 +750,4 @@ public class ObjectFieldLocalServiceWrapper
 	private ObjectFieldLocalService _objectFieldLocalService;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:12179328
+// LIFERAY-SERVICE-BUILDER-HASH:-574946968

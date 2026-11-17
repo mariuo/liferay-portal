@@ -452,6 +452,10 @@ public interface ObjectFieldLocalService
 		throws PortalException;
 
 	@Indexable(type = IndexableType.REINDEX)
+	public ObjectField updatePriority(long objectFieldId, int priority)
+		throws PortalException;
+
+	@Indexable(type = IndexableType.REINDEX)
 	public ObjectField updateRequired(long objectFieldId, boolean required)
 		throws PortalException;
 
@@ -474,4 +478,4 @@ public interface ObjectFieldLocalService
 		throws PortalException;
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:-1707747933
+// LIFERAY-SERVICE-BUILDER-HASH:-475183070

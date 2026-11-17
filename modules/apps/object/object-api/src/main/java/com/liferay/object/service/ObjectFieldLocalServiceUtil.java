@@ -583,6 +583,12 @@ public class ObjectFieldLocalServiceUtil {
 			required, state, system, objectFieldSettings);
 	}
 
+	public static ObjectField updatePriority(long objectFieldId, int priority)
+		throws PortalException {
+
+		return getService().updatePriority(objectFieldId, priority);
+	}
+
 	public static ObjectField updateRequired(
 			long objectFieldId, boolean required)
 		throws PortalException {
@@ -634,4 +640,4 @@ public class ObjectFieldLocalServiceUtil {
 			ObjectFieldLocalServiceUtil.class, ObjectFieldLocalService.class);
 
 }
-// LIFERAY-SERVICE-BUILDER-HASH:98361701
+// LIFERAY-SERVICE-BUILDER-HASH:-2063461404
