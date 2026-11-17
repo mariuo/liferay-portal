@@ -15,7 +15,6 @@ import com.liferay.object.admin.rest.internal.dto.v1_0.util.ObjectFieldUtil;
 import com.liferay.object.admin.rest.internal.odata.entity.v1_0.ObjectFieldEntityModel;
 import com.liferay.object.admin.rest.resource.v1_0.ObjectFieldResource;
 import com.liferay.object.service.ObjectDefinitionLocalService;
-import com.liferay.object.service.ObjectFieldLocalService;
 import com.liferay.object.service.ObjectFieldService;
 import com.liferay.object.service.ObjectFieldSettingLocalService;
 import com.liferay.object.service.ObjectFilterLocalService;
@@ -153,6 +152,12 @@ public class ObjectFieldResourceImpl extends BaseObjectFieldResourceImpl {
 					objectField, _objectFieldSettingLocalService,
 					_objectFilterLocalService));
 
+		if (objectField.getPriority() != null) {
+			serviceBuilderObjectField = _objectFieldService.updatePriority(
+				serviceBuilderObjectField.getObjectFieldId(),
+				objectField.getPriority());
+		}
+
 		if (objectDefinition.isApproved() && objectDefinition.isActive()) {
 			_objectDefinitionLocalService.deployObjectDefinition(
 				objectDefinition);
@@ -197,11 +202,9 @@ public class ObjectFieldResourceImpl extends BaseObjectFieldResourceImpl {
 					_objectFilterLocalService));
 
 		if (objectField.getPriority() != null) {
-			serviceBuilderObjectField.setPriority(objectField.getPriority());
-
-			serviceBuilderObjectField =
-				_objectFieldLocalService.updateObjectField(
-					serviceBuilderObjectField);
+			serviceBuilderObjectField = _objectFieldService.updatePriority(
+				serviceBuilderObjectField.getObjectFieldId(),
+				objectField.getPriority());
 		}
 
 		return _toObjectField(serviceBuilderObjectField);
@@ -389,9 +392,6 @@ public class ObjectFieldResourceImpl extends BaseObjectFieldResourceImpl {
 	@Reference(target = DTOConverterConstants.OBJECT_FIELD_DTO_CONVERTER)
 	private DTOConverter<com.liferay.object.model.ObjectField, ObjectField>
 		_objectFieldDTOConverter;
-
-	@Reference
-	private ObjectFieldLocalService _objectFieldLocalService;
 
 	@Reference
 	private ObjectFieldService _objectFieldService;

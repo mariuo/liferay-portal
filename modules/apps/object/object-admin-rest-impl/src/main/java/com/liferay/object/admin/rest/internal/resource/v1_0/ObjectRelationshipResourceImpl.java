@@ -17,10 +17,10 @@ import com.liferay.object.model.ObjectField;
 import com.liferay.object.model.ObjectFolder;
 import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.object.service.ObjectFieldLocalService;
+import com.liferay.object.service.ObjectFieldService;
 import com.liferay.object.service.ObjectFieldSettingLocalService;
 import com.liferay.object.service.ObjectFilterLocalService;
 import com.liferay.object.service.ObjectFolderLocalService;
-import com.liferay.object.service.ObjectRelationshipLocalService;
 import com.liferay.object.service.ObjectRelationshipService;
 import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.portal.kernel.lazy.referencing.LazyReferencingThreadLocal;
@@ -221,26 +221,29 @@ public class ObjectRelationshipResourceImpl
 		}
 
 		return _toObjectRelationship(
-			_objectRelationshipService.addObjectRelationship(
-				objectRelationship.getExternalReferenceCode(),
-				objectDefinitionId, objectDefinitionId2,
-				GetterUtil.getLong(
-					objectRelationship.getParameterObjectFieldId()),
-				objectRelationship.getDeletionTypeAsString(),
-				LocalizedMapUtil.populateLocalizedMap(
-					objectRelationship.getDescription()),
-				GetterUtil.getBoolean(objectRelationship.getEdge()),
-				LocalizedMapUtil.populateLocalizedMap(
-					objectRelationship.getLabel()),
-				objectRelationship.getName(),
-				GetterUtil.getBoolean(objectRelationship.getSystem()),
-				objectRelationship.getTypeAsString(),
-				ObjectFieldUtil.toObjectField(
-					LocaleUtil.toLanguageId(LocaleUtil.getSiteDefault()),
-					groupLocalService, _listTypeDefinitionLocalService,
-					objectRelationship.getObjectField(),
-					_objectFieldLocalService, _objectFieldSettingLocalService,
-					_objectFilterLocalService)));
+			_updatePriorities(
+				objectRelationship,
+				_objectRelationshipService.addObjectRelationship(
+					objectRelationship.getExternalReferenceCode(),
+					objectDefinitionId, objectDefinitionId2,
+					GetterUtil.getLong(
+						objectRelationship.getParameterObjectFieldId()),
+					objectRelationship.getDeletionTypeAsString(),
+					LocalizedMapUtil.populateLocalizedMap(
+						objectRelationship.getDescription()),
+					GetterUtil.getBoolean(objectRelationship.getEdge()),
+					LocalizedMapUtil.populateLocalizedMap(
+						objectRelationship.getLabel()),
+					objectRelationship.getName(),
+					GetterUtil.getBoolean(objectRelationship.getSystem()),
+					objectRelationship.getTypeAsString(),
+					ObjectFieldUtil.toObjectField(
+						LocaleUtil.toLanguageId(LocaleUtil.getSiteDefault()),
+						groupLocalService, _listTypeDefinitionLocalService,
+						objectRelationship.getObjectField(),
+						_objectFieldLocalService,
+						_objectFieldSettingLocalService,
+						_objectFilterLocalService))));
 	}
 
 	@Override
@@ -290,16 +293,9 @@ public class ObjectRelationshipResourceImpl
 						_objectFieldSettingLocalService,
 						_objectFilterLocalService));
 
-		if (objectRelationship.getPriority() != null) {
-			serviceBuilderObjectRelationship.setPriority(
-				objectRelationship.getPriority());
-
-			serviceBuilderObjectRelationship =
-				_objectRelationshipLocalService.updateObjectRelationship(
-					serviceBuilderObjectRelationship);
-		}
-
-		return _toObjectRelationship(serviceBuilderObjectRelationship);
+		return _toObjectRelationship(
+			_updatePriorities(
+				objectRelationship, serviceBuilderObjectRelationship));
 	}
 
 	@Override
@@ -405,6 +401,32 @@ public class ObjectRelationshipResourceImpl
 			objectRelationship);
 	}
 
+	private com.liferay.object.model.ObjectRelationship _updatePriorities(
+			ObjectRelationship objectRelationship,
+			com.liferay.object.model.ObjectRelationship
+				serviceBuilderObjectRelationship)
+		throws Exception {
+
+		com.liferay.object.admin.rest.dto.v1_0.ObjectField objectField =
+			objectRelationship.getObjectField();
+
+		if ((objectField != null) && (objectField.getPriority() != null) &&
+			(serviceBuilderObjectRelationship.getObjectFieldId2() > 0)) {
+
+			_objectFieldService.updatePriority(
+				serviceBuilderObjectRelationship.getObjectFieldId2(),
+				objectField.getPriority());
+		}
+
+		if (objectRelationship.getPriority() == null) {
+			return serviceBuilderObjectRelationship;
+		}
+
+		return _objectRelationshipService.updatePriority(
+			serviceBuilderObjectRelationship.getObjectRelationshipId(),
+			objectRelationship.getPriority());
+	}
+
 	private static final EntityModel _entityModel =
 		new ObjectRelationshipEntityModel();
 
@@ -416,6 +438,9 @@ public class ObjectRelationshipResourceImpl
 
 	@Reference
 	private ObjectFieldLocalService _objectFieldLocalService;
+
+	@Reference
+	private ObjectFieldService _objectFieldService;
 
 	@Reference
 	private ObjectFieldSettingLocalService _objectFieldSettingLocalService;
@@ -430,9 +455,6 @@ public class ObjectRelationshipResourceImpl
 	private DTOConverter
 		<com.liferay.object.model.ObjectRelationship, ObjectRelationship>
 			_objectRelationshipDTOConverter;
-
-	@Reference
-	private ObjectRelationshipLocalService _objectRelationshipLocalService;
 
 	@Reference
 	private ObjectRelationshipService _objectRelationshipService;

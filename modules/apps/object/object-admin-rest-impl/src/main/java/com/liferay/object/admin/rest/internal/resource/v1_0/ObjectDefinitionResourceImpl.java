@@ -550,6 +550,10 @@ public class ObjectDefinitionResourceImpl
 			serviceBuilderObjectDefinition.getObjectDefinitionId(),
 			objectDefinition.getObjectFields());
 
+		_updateObjectFieldPriorities(
+			serviceBuilderObjectDefinition.getObjectDefinitionId(),
+			objectDefinition.getObjectFields());
+
 		Status status = objectDefinition.getStatus();
 
 		if ((status != null) &&
@@ -994,6 +998,10 @@ public class ObjectDefinitionResourceImpl
 		_updateAggregationObjectFields(
 			serviceBuilderObjectDefinition.getDBTableName(),
 			objectDefinition.getDefaultLanguageId(),
+			serviceBuilderObjectDefinition.getObjectDefinitionId(),
+			objectDefinition.getObjectFields());
+
+		_updateObjectFieldPriorities(
 			serviceBuilderObjectDefinition.getObjectDefinitionId(),
 			objectDefinition.getObjectFields());
 
@@ -1679,6 +1687,33 @@ public class ObjectDefinitionResourceImpl
 				serviceBuilderObjectField.isState(),
 				serviceBuilderObjectField.isSystem(),
 				serviceBuilderObjectField.getObjectFieldSettings());
+		}
+	}
+
+	private void _updateObjectFieldPriorities(
+			long objectDefinitionId, ObjectField[] objectFields)
+		throws Exception {
+
+		if (objectFields == null) {
+			return;
+		}
+
+		for (ObjectField objectField : objectFields) {
+			if (objectField.getPriority() == null) {
+				continue;
+			}
+
+			com.liferay.object.model.ObjectField serviceBuilderObjectField =
+				_objectFieldLocalService.fetchObjectField(
+					objectDefinitionId, objectField.getName());
+
+			if (serviceBuilderObjectField == null) {
+				continue;
+			}
+
+			_objectFieldLocalService.updatePriority(
+				serviceBuilderObjectField.getObjectFieldId(),
+				objectField.getPriority());
 		}
 	}
 
