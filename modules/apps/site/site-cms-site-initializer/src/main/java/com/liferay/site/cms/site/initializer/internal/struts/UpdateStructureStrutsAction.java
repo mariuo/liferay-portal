@@ -43,6 +43,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 
 import org.osgi.service.component.annotations.Component;
@@ -168,7 +169,8 @@ public class UpdateStructureStrutsAction implements StrutsAction {
 	}
 
 	private void _deleteObjectRelationships(
-			long companyId, String externalReferenceCode)
+			long companyId, String externalReferenceCode,
+			List<ObjectRelationship> objectRelationships)
 		throws Exception {
 
 		com.liferay.object.model.ObjectDefinition
@@ -191,7 +193,10 @@ public class UpdateStructureStrutsAction implements StrutsAction {
 
 			if (serviceBuilderObjectRelationship.isReverse() ||
 				!serviceBuilderObjectRelationship.compareType(
-					ObjectRelationshipConstants.TYPE_ONE_TO_MANY)) {
+					ObjectRelationshipConstants.TYPE_ONE_TO_MANY) ||
+				_hasObjectRelationship(
+					externalReferenceCode, objectRelationships,
+					serviceBuilderObjectRelationship)) {
 
 				continue;
 			}
@@ -249,6 +254,40 @@ public class UpdateStructureStrutsAction implements StrutsAction {
 		}
 
 		return objectRelationships;
+	}
+
+	private boolean _hasObjectRelationship(
+			String objectDefinitionExternalReferenceCode2,
+			List<ObjectRelationship> objectRelationships,
+			com.liferay.object.model.ObjectRelationship
+				serviceBuilderObjectRelationship)
+		throws Exception {
+
+		com.liferay.object.model.ObjectDefinition
+			serviceBuilderObjectDefinition1 =
+				_objectDefinitionLocalService.getObjectDefinition(
+					serviceBuilderObjectRelationship.getObjectDefinitionId1());
+
+		for (ObjectRelationship objectRelationship : objectRelationships) {
+			if (Objects.equals(
+					objectRelationship.getExternalReferenceCode(),
+					serviceBuilderObjectRelationship.
+						getExternalReferenceCode()) &&
+				Objects.equals(
+					objectRelationship.
+						getObjectDefinitionExternalReferenceCode1(),
+					serviceBuilderObjectDefinition1.
+						getExternalReferenceCode()) &&
+				Objects.equals(
+					objectRelationship.
+						getObjectDefinitionExternalReferenceCode2(),
+					objectDefinitionExternalReferenceCode2)) {
+
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	private void _updateObjectRelationships(
@@ -458,8 +497,8 @@ public class UpdateStructureStrutsAction implements StrutsAction {
 							objectDefinition);
 
 					_deleteObjectRelationships(
-						_companyId,
-						objectDefinition.getExternalReferenceCode());
+						_companyId, objectDefinition.getExternalReferenceCode(),
+						_objectRelationships);
 				}
 			}
 
@@ -483,7 +522,8 @@ public class UpdateStructureStrutsAction implements StrutsAction {
 			}
 
 			_deleteObjectRelationships(
-				_companyId, _objectDefinition.getExternalReferenceCode());
+				_companyId, _objectDefinition.getExternalReferenceCode(),
+				_objectRelationships);
 
 			if (ListUtil.isNotEmpty(_objectRelationships)) {
 				ObjectRelationshipResource objectRelationshipResource =
@@ -493,9 +533,8 @@ public class UpdateStructureStrutsAction implements StrutsAction {
 						_objectRelationships) {
 
 					objectRelationshipResource.
-						postObjectDefinitionByExternalReferenceCodeObjectRelationship(
-							objectRelationship.
-								getObjectDefinitionExternalReferenceCode1(),
+						putObjectRelationshipByExternalReferenceCode(
+							objectRelationship.getExternalReferenceCode(),
 							objectRelationship);
 				}
 			}
