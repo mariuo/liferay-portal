@@ -193,6 +193,23 @@ public class ObjectRelationshipServiceImpl
 			deletionType, descriptionMap, edge, labelMap, objectField);
 	}
 
+	@Override
+	public ObjectRelationship updatePriority(
+			long objectRelationshipId, int priority)
+		throws PortalException {
+
+		ObjectRelationship objectRelationship =
+			objectRelationshipPersistence.findByPrimaryKey(
+				objectRelationshipId);
+
+		_objectDefinitionModelResourcePermission.check(
+			getPermissionChecker(), objectRelationship.getObjectDefinitionId1(),
+			ActionKeys.UPDATE);
+
+		return objectRelationshipLocalService.updatePriority(
+			objectRelationshipId, priority);
+	}
+
 	private void _checkModelResourcePermission(
 			long objectDefinitionId, long objectEntryId, String actionId)
 		throws PortalException {

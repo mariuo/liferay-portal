@@ -126,6 +126,20 @@ public class ObjectFieldServiceImpl extends ObjectFieldServiceBaseImpl {
 			objectField.isSystem(), objectFieldSettings);
 	}
 
+	@Override
+	public ObjectField updatePriority(long objectFieldId, int priority)
+		throws PortalException {
+
+		ObjectField objectField = objectFieldPersistence.findByPrimaryKey(
+			objectFieldId);
+
+		_objectDefinitionModelResourcePermission.check(
+			getPermissionChecker(), objectField.getObjectDefinitionId(),
+			ActionKeys.UPDATE);
+
+		return objectFieldLocalService.updatePriority(objectFieldId, priority);
+	}
+
 	@Reference(
 		target = "(model.class.name=com.liferay.object.model.ObjectDefinition)"
 	)

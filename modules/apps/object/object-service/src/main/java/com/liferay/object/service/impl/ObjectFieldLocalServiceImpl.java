@@ -752,6 +752,23 @@ public class ObjectFieldLocalServiceImpl
 
 	@Indexable(type = IndexableType.REINDEX)
 	@Override
+	public ObjectField updatePriority(long objectFieldId, int priority)
+		throws PortalException {
+
+		ObjectField objectField = objectFieldPersistence.findByPrimaryKey(
+			objectFieldId);
+
+		if (objectField.getPriority() == priority) {
+			return objectField;
+		}
+
+		objectField.setPriority(priority);
+
+		return objectFieldPersistence.update(objectField);
+	}
+
+	@Indexable(type = IndexableType.REINDEX)
+	@Override
 	public ObjectField updateRequired(long objectFieldId, boolean required)
 		throws PortalException {
 

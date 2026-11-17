@@ -1132,6 +1132,25 @@ public class ObjectRelationshipLocalServiceImpl
 		return objectRelationship;
 	}
 
+	@Indexable(type = IndexableType.REINDEX)
+	@Override
+	public ObjectRelationship updatePriority(
+			long objectRelationshipId, int priority)
+		throws PortalException {
+
+		ObjectRelationship objectRelationship =
+			objectRelationshipPersistence.findByPrimaryKey(
+				objectRelationshipId);
+
+		if (objectRelationship.getPriority() == priority) {
+			return objectRelationship;
+		}
+
+		objectRelationship.setPriority(priority);
+
+		return objectRelationshipPersistence.update(objectRelationship);
+	}
+
 	@Override
 	public void updateUserId(long companyId, long oldUserId, long newUserId)
 		throws PortalException {
