@@ -148,6 +148,7 @@ type BaseField = {
 	locked: boolean;
 	name: string;
 	parent: Uuid;
+	priority?: number;
 	required: boolean;
 	settings: {};
 	uuid: Uuid;

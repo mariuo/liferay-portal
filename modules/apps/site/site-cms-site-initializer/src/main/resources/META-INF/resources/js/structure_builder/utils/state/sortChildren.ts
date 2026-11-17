@@ -8,15 +8,37 @@ import {Structure, StructureChild} from '../../types/Structure';
 export default function sortChildren(
 	children: Structure['children']
 ): Structure['children'] {
-	const array = Array.from(children.values());
+	let array = Array.from(children.values());
+
+	if (isOrdered(array)) {
+		let lastPriority = Math.max(
+			...array.map((child) => child.priority ?? 0)
+		);
+
+		array = array.map((child) => {
+			if (child.priority !== undefined) {
+				return child;
+			}
+
+			lastPriority++;
+
+			return {...child, priority: lastPriority};
+		});
+	}
 
 	const sorted = array.sort((a, b) => {
-		return getWeight(a) - getWeight(b);
+		return (
+			(a.priority ?? 0) - (b.priority ?? 0) || getWeight(a) - getWeight(b)
+		);
 	});
 
 	const map = new Map(sorted.map((child) => [child.uuid, child]));
 
 	return map;
+}
+
+export function isOrdered(children: StructureChild[]) {
+	return children.some((child) => (child.priority ?? 0) > 0);
 }
 
 function getWeight(child: StructureChild) {

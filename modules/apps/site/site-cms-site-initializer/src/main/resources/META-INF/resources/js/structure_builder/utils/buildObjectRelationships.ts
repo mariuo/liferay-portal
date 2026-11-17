@@ -5,6 +5,7 @@
 
 import {ObjectRelationship} from '../../common/types/ObjectDefinition';
 import {RelatedContent, RepeatableGroup, Structure} from '../types/Structure';
+import getPriorities from './getPriorities';
 import isRepeatableGroup from './isRepeatableGroup';
 
 export default function buildObjectRelationships({
@@ -16,7 +17,7 @@ export default function buildObjectRelationships({
 }): ObjectRelationship[] {
 	return getRelatedContents(children, structureERC)
 		.filter(({relatedContent}) => !relatedContent.multiselection)
-		.map(({parentERC, relatedContent}) => {
+		.map(({parentERC, priority, relatedContent}) => {
 			return {
 				deletionType: 'disassociate',
 				externalReferenceCode: relatedContent.erc,
@@ -26,6 +27,7 @@ export default function buildObjectRelationships({
 					relatedContent.relatedStructureERC!,
 				objectDefinitionExternalReferenceCode2: parentERC,
 				type: 'oneToMany',
+				...(priority === undefined ? {} : {objectField: {priority}}),
 			};
 		});
 }
@@ -35,8 +37,11 @@ function getRelatedContents(
 	parentERC: Structure['erc'] | RepeatableGroup['erc']
 ): {
 	parentERC: Structure['erc'] | RepeatableGroup['erc'];
+	priority?: number;
 	relatedContent: RelatedContent;
 }[] {
+	const priorities = getPriorities(children);
+
 	const relatedContents = [];
 
 	for (const child of children.values()) {
@@ -46,7 +51,11 @@ function getRelatedContents(
 			);
 		}
 		else if (child.type === 'related-content') {
-			relatedContents.push({parentERC, relatedContent: child});
+			relatedContents.push({
+				parentERC,
+				priority: priorities?.get(child.uuid),
+				relatedContent: child,
+			});
 		}
 	}
 

@@ -22,8 +22,10 @@ import {
 	Structure,
 	StructureChild,
 } from '../types/Structure';
+import {Uuid} from '../types/Uuid';
 import {FIELD_TYPE_TO_DB_TYPE, Field, getFieldBusinessType} from './field';
 import getOwnFields from './getOwnFields';
+import getPriorities from './getPriorities';
 import isField from './isField';
 import {isFieldTextSearchable} from './isFieldTextSearchable';
 import isRepeatableGroup from './isRepeatableGroup';
@@ -53,6 +55,8 @@ export default function buildObjectDefinition({
 	titleFieldName?: Structure['titleFieldName'];
 	workflows?: Structure['workflows'];
 }): ObjectDefinition {
+	const priorities = getPriorities(children);
+
 	const objectDefinition: ObjectDefinition = {
 		enableComments: true,
 		enableFriendlyURLCustomization: true,
@@ -64,8 +68,9 @@ export default function buildObjectDefinition({
 		enableObjectEntryVersioning: true,
 		externalReferenceCode: erc,
 		label,
-		objectFields: buildFields(getOwnFields(children)),
+		objectFields: buildFields(getOwnFields(children), priorities),
 		objectRelationships: buildRelationships({
+			priorities,
 			referencedStructures: getReferencedStructures(children),
 			relatedContents: getRelatedContents(children),
 			repeatableGroups: getRepeatableGroups(children),
@@ -255,7 +260,7 @@ function getRepeatableGroups(
 	return Array.from(children.values()).filter(isRepeatableGroup);
 }
 
-function buildFields(fields: Field[]) {
+function buildFields(fields: Field[], priorities: Map<Uuid, number> | null) {
 	return fields.map((field) => {
 		const objectField: ObjectField = {
 			DBType: FIELD_TYPE_TO_DB_TYPE[field.type],
@@ -289,22 +294,31 @@ function buildFields(fields: Field[]) {
 			objectField.listTypeDefinitionId = field.picklistId;
 		}
 
+		if (priorities) {
+			objectField.priority = priorities.get(field.uuid);
+		}
+
 		return objectField;
 	});
 }
 
 function buildRelationships({
+	priorities,
 	referencedStructures,
 	relatedContents,
 	repeatableGroups,
 	structureERC,
 }: {
+	priorities: Map<Uuid, number> | null;
 	referencedStructures: ReferencedStructure[];
 	relatedContents: RelatedContent[];
 	repeatableGroups: RepeatableGroup[];
 	structureERC: Structure['erc'];
 }) {
 	const relationships: ObjectRelationship[] = [];
+
+	const getPriority = (uuid: Uuid) =>
+		priorities ? {priority: priorities.get(uuid)} : {};
 
 	for (const referencedStructure of referencedStructures) {
 		relationships.push({
@@ -318,6 +332,7 @@ function buildRelationships({
 			objectDefinitionExternalReferenceCode1: structureERC,
 			objectDefinitionExternalReferenceCode2: referencedStructure.erc,
 			type: 'oneToMany',
+			...getPriority(referencedStructure.uuid),
 		});
 	}
 
@@ -331,6 +346,7 @@ function buildRelationships({
 			objectDefinitionExternalReferenceCode1: structureERC,
 			objectDefinitionExternalReferenceCode2: repeatableGroup.erc,
 			type: 'oneToMany',
+			...getPriority(repeatableGroup.uuid),
 		});
 	}
 
@@ -345,6 +361,7 @@ function buildRelationships({
 				objectDefinitionExternalReferenceCode2:
 					relatedContent.relatedStructureERC!,
 				type: 'manyToMany',
+				...getPriority(relatedContent.uuid),
 			});
 		}
 	}

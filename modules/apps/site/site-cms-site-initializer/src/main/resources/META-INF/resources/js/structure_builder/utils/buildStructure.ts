@@ -88,6 +88,13 @@ export function buildChildren({
 		return children;
 	}
 
+	const ordered =
+		objectFields.some(({priority}) => (priority ?? 0) > 0) ||
+		objectRelationships.some(({priority}) => (priority ?? 0) > 0);
+
+	const getPriority = (priority?: number) =>
+		ordered ? {priority: priority ?? 0} : {};
+
 	for (const objectField of objectFields) {
 		if (
 			!isCustomObjectField({
@@ -106,7 +113,10 @@ export function buildChildren({
 			systemFieldNames,
 		});
 
-		children.set(field.uuid, field);
+		children.set(field.uuid, {
+			...field,
+			...getPriority(objectField.priority),
+		});
 	}
 
 	for (const objectRelationship of objectRelationships) {
@@ -121,6 +131,7 @@ export function buildChildren({
 					objectRelationship.objectDefinitionExternalReferenceCode2,
 				type: 'related-content',
 				uuid: getUuid(),
+				...getPriority(objectRelationship.priority),
 			};
 
 			children.set(relatedContent.uuid, relatedContent);
@@ -139,7 +150,10 @@ export function buildChildren({
 				systemFieldNames,
 			});
 
-			children.set(repeatableGroup.uuid, repeatableGroup);
+			children.set(repeatableGroup.uuid, {
+				...repeatableGroup,
+				...getPriority(objectRelationship.priority),
+			});
 		}
 		else if (objectRelationship.edge) {
 			const referencedStructure = buildReferencedStructure({
@@ -155,7 +169,10 @@ export function buildChildren({
 				systemFieldNames,
 			});
 
-			children.set(referencedStructure.uuid, referencedStructure);
+			children.set(referencedStructure.uuid, {
+				...referencedStructure,
+				...getPriority(objectRelationship.priority),
+			});
 		}
 	}
 
@@ -166,6 +183,12 @@ export function buildChildren({
 		);
 
 	for (const relatedContentObjectRelationship of relatedContentObjectRelationships) {
+		const relationshipObjectField = objectFields.find(
+			(objectField) =>
+				objectField.objectRelationshipExternalReferenceCode ===
+				relatedContentObjectRelationship.externalReferenceCode
+		);
+
 		const relatedContent: RelatedContent = {
 			erc: relatedContentObjectRelationship.externalReferenceCode,
 			label: relatedContentObjectRelationship.label,
@@ -176,6 +199,7 @@ export function buildChildren({
 				relatedContentObjectRelationship.objectDefinitionExternalReferenceCode1,
 			type: 'related-content',
 			uuid: getUuid(),
+			...getPriority(relationshipObjectField?.priority),
 		};
 
 		children.set(relatedContent.uuid, relatedContent);
@@ -280,6 +304,10 @@ function buildGroup({
 	parent: Uuid;
 	uuid: Uuid;
 }): NonRepeatableGroup {
+	const priorities = children
+		.map((child) => child.priority ?? 0)
+		.filter((priority) => priority > 0);
+
 	return {
 		children: sortChildren(
 			new Map(children.map((child) => [child.uuid, child]))
@@ -289,6 +317,7 @@ function buildGroup({
 		parent,
 		type: 'group',
 		uuid,
+		...(priorities.length ? {priority: Math.min(...priorities)} : {}),
 	};
 }
 

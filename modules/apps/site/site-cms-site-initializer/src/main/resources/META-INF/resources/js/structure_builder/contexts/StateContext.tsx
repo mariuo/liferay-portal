@@ -180,6 +180,7 @@ type DuplicateChildrenAction = {type: 'duplicate-children'; uuids: Uuid[]};
 type EndOperationAction = {type: 'end-operation'};
 
 type MoveChildrenAction = {
+	index?: number;
 	items: StructureChild[];
 	targetUuid: Uuid;
 	type: 'move-children';
@@ -622,11 +623,12 @@ function reducer(state: State, action: Action): State {
 			return {...state, operation: null};
 		}
 		case 'move-children': {
-			const {items, targetUuid} = action;
+			const {index, items, targetUuid} = action;
 
 			const {history, savedChildren, structure} = state;
 
 			const children = moveChildren({
+				index,
 				items,
 				root: structure,
 				targetUuid,
@@ -635,7 +637,12 @@ function reducer(state: State, action: Action): State {
 			const deletedChildrenUuids = new Set<Uuid>();
 
 			for (const item of items) {
-				if (savedChildren.has(item.uuid)) {
+				const child = findChild({root: structure, uuid: item.uuid});
+
+				if (
+					savedChildren.has(item.uuid) &&
+					child?.parent !== targetUuid
+				) {
 					deletedChildrenUuids.add(item.uuid);
 				}
 			}

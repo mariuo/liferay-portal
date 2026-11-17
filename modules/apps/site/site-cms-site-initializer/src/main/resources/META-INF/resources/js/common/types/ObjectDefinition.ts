@@ -34,6 +34,8 @@ export type ObjectField = {
 		name: string;
 		value: boolean | string | number | StateFlowValue;
 	}[];
+	objectRelationshipExternalReferenceCode?: string;
+	priority?: number;
 	required: boolean;
 	system: boolean;
 };
@@ -79,6 +81,8 @@ export type ObjectRelationship = {
 	objectDefinitionExternalReferenceCode1: string;
 	objectDefinitionExternalReferenceCode2: string;
 	objectDefinitionName2?: string;
+	objectField?: {priority?: number};
+	priority?: number;
 	reverse?: boolean;
 	type: 'manyToMany' | 'oneToMany' | 'oneToOne';
 };

@@ -25,6 +25,7 @@ export type ReferencedStructure = {
 	label: Liferay.Language.LocalizedValue<string>;
 	name: string;
 	parent: Uuid;
+	priority?: number;
 	relationshipERC: string;
 	relationshipName: string;
 	spaces: Spaces;
@@ -39,6 +40,7 @@ export type RelatedContent = {
 	multiselection: boolean;
 	name: string;
 	parent: Uuid;
+	priority?: number;
 	relatedStructureERC: string;
 	type: 'related-content';
 	uuid: Uuid;
@@ -50,6 +52,7 @@ type BaseGroup = {
 	label: Liferay.Language.LocalizedValue<string>;
 	name?: string;
 	parent: Uuid;
+	priority?: number;
 	relationshipERC?: string;
 	relationshipName?: string;
 	type: 'group';

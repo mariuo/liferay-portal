@@ -27,6 +27,7 @@ import isRelationship from './isRelationship';
 export default async function handleMoveChildren({
 	deletedChildren,
 	dispatch,
+	index,
 	publishedChildren,
 	structure,
 	targetUuid,
@@ -34,11 +35,28 @@ export default async function handleMoveChildren({
 }: {
 	deletedChildren: State['history']['deletedChildren'];
 	dispatch: Dispatch<Action>;
+	index?: number;
 	publishedChildren: State['publishedChildren'];
 	structure: Structure;
 	targetUuid: Uuid;
 	uuids: Uuid[];
 }) {
+	const siblings = uuids.map((uuid) => findChild({root: structure, uuid})!);
+
+	if (
+		index !== undefined &&
+		siblings.every((sibling) => sibling.parent === targetUuid)
+	) {
+		dispatch({
+			index,
+			items: siblings,
+			targetUuid,
+			type: 'move-children',
+		});
+
+		return;
+	}
+
 	if (
 		Liferay.FeatureFlags['LPD-96666'] &&
 		targetUuid !== structure.uuid &&
@@ -189,6 +207,7 @@ export default async function handleMoveChildren({
 	showWarnings(reasons);
 
 	dispatch({
+		index,
 		items: movableItems,
 		targetUuid,
 		type: 'move-children',

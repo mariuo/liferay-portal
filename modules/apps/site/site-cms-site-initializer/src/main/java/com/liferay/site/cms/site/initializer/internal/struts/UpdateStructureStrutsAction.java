@@ -6,12 +6,14 @@
 package com.liferay.site.cms.site.initializer.internal.struts;
 
 import com.liferay.object.admin.rest.dto.v1_0.ObjectDefinition;
+import com.liferay.object.admin.rest.dto.v1_0.ObjectField;
 import com.liferay.object.admin.rest.dto.v1_0.ObjectRelationship;
 import com.liferay.object.admin.rest.resource.v1_0.ObjectDefinitionResource;
 import com.liferay.object.admin.rest.resource.v1_0.ObjectRelationshipResource;
 import com.liferay.object.constants.ObjectRelationshipConstants;
 import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.object.service.ObjectDefinitionService;
+import com.liferay.object.service.ObjectFieldLocalService;
 import com.liferay.object.service.ObjectRelationshipLocalService;
 import com.liferay.object.service.ObjectRelationshipService;
 import com.liferay.portal.kernel.json.JSONArray;
@@ -398,6 +400,9 @@ public class UpdateStructureStrutsAction implements StrutsAction {
 	private ObjectDefinitionService _objectDefinitionService;
 
 	@Reference
+	private ObjectFieldLocalService _objectFieldLocalService;
+
+	@Reference
 	private ObjectRelationshipLocalService _objectRelationshipLocalService;
 
 	@Reference
@@ -532,10 +537,29 @@ public class UpdateStructureStrutsAction implements StrutsAction {
 				for (ObjectRelationship objectRelationship :
 						_objectRelationships) {
 
-					objectRelationshipResource.
-						putObjectRelationshipByExternalReferenceCode(
-							objectRelationship.getExternalReferenceCode(),
-							objectRelationship);
+					ObjectField objectField =
+						objectRelationship.getObjectField();
+
+					objectRelationship.setObjectField(() -> null);
+
+					ObjectRelationship putObjectRelationship =
+						objectRelationshipResource.
+							putObjectRelationshipByExternalReferenceCode(
+								objectRelationship.getExternalReferenceCode(),
+								objectRelationship);
+
+					ObjectField putObjectField =
+						putObjectRelationship.getObjectField();
+
+					if ((objectField == null) ||
+						(objectField.getPriority() == null) ||
+						(putObjectField == null)) {
+
+						continue;
+					}
+
+					_objectFieldLocalService.updatePriority(
+						putObjectField.getId(), objectField.getPriority());
 				}
 			}
 

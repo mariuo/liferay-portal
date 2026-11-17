@@ -8,10 +8,12 @@ import {Uuid} from '../../types/Uuid';
 import sortChildren from './sortChildren';
 
 export default function moveChildren({
+	index,
 	items,
 	root,
 	targetUuid,
 }: {
+	index?: number;
 	items: StructureChild[];
 	root: Structure | Group;
 	targetUuid: Uuid;
@@ -34,6 +36,7 @@ export default function moveChildren({
 			const group: Group = {
 				...rootChild,
 				children: moveChildren({
+					index,
 					items,
 					root: rootChild,
 					targetUuid,
@@ -47,13 +50,36 @@ export default function moveChildren({
 		}
 	}
 
-	// Insert items if this is the target parent
-
-	if (root.uuid === targetUuid) {
-		for (const item of items) {
-			children.set(item.uuid, item);
-		}
+	if (root.uuid !== targetUuid) {
+		return sortChildren(children);
 	}
 
-	return sortChildren(children);
+	// Insert items at the end when no position was given
+
+	if (index === undefined) {
+		for (const item of items) {
+			children.set(item.uuid, {...item, priority: undefined});
+		}
+
+		return sortChildren(children);
+	}
+
+	// Insert items at the given position and renumber the siblings
+
+	const position = Array.from(root.children.values())
+		.slice(0, index)
+		.filter(
+			(rootChild) => !items.some(({uuid}) => uuid === rootChild.uuid)
+		).length;
+
+	const orderedChildren = Array.from(children.values());
+
+	orderedChildren.splice(position, 0, ...items);
+
+	return new Map(
+		orderedChildren.map((child, childIndex) => [
+			child.uuid,
+			{...child, priority: childIndex + 1},
+		])
+	);
 }

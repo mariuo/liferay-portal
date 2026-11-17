@@ -109,6 +109,8 @@ export default function StructureTree({search}: {search: string}) {
 	);
 	const [selectedKeys, setSelectedKeys] = useState<Set<Key>>(new Set());
 
+	const positionRef = useRef<string | null>(null);
+
 	const hasReferencedStructure = useMemo(
 		() => hasReferencedStructureChild(children),
 		[children]
@@ -303,9 +305,7 @@ export default function StructureTree({search}: {search: string}) {
 			nestedKey="children"
 			onExpandedChange={setExpandedKeys}
 			onItemHover={(ids, target, index, position) => {
-				if (position !== 'middle') {
-					return false;
-				}
+				positionRef.current = position;
 
 				if (target.id === structure.uuid) {
 					return true;
@@ -329,10 +329,14 @@ export default function StructureTree({search}: {search: string}) {
 					type: 'danger',
 				})
 			}
-			onItemMove={(ids, parent) => {
+			onItemMove={(ids, parent, index) => {
 				handleMoveChildren({
 					deletedChildren: history.deletedChildren,
 					dispatch,
+					index:
+						positionRef.current === 'middle'
+							? undefined
+							: index?.next,
 					publishedChildren,
 					structure,
 					targetUuid: parent.id,
